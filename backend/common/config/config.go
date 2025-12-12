@@ -6,6 +6,9 @@ import (
 	"github.com/caarlos0/env/v11"
 )
 
+const DEV = "dev"
+const PROD = "prod"
+
 type Config struct {
 	Env              string `env:"ENV" default:"dev"`
 	PostgresHost     string `env:"POSTGRES_HOST,required"`

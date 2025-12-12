@@ -4,30 +4,23 @@ import (
 	"alerting-platform/common/config"
 	"database/sql"
 	"fmt"
-	"sync"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-var (
-	db   *sql.DB
-	once sync.Once
-)
-
 func GetRawDBConnection() *sql.DB {
-	once.Do(func() {
-		var err error
+	var db *sql.DB
+	var err error
 
-		if config.GetConfig().Env == "local" {
-			db, err = connectLocal()
-		} else {
-			db, err = connectLocal()
-		}
+	if config.GetConfig().Env == config.DEV {
+		db, err = connectLocal()
+	} else {
+		db, err = connectLocal()
+	}
 
-		if err != nil {
-			panic(fmt.Sprintf("Failed to connect to DB: %v", err))
-		}
-	})
+	if err != nil {
+		panic(fmt.Sprintf("Failed to connect to DB: %v", err))
+	}
 
 	return db
 }

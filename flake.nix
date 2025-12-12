@@ -20,6 +20,7 @@
             buildInputs = with pkgs; [
               # Backend
               go
+              golangci-lint
 
               # Frontend
               pnpm

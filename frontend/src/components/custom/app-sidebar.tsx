@@ -9,28 +9,29 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from '@/components/ui/sidebar';
-import { Link, useRouter } from '@tanstack/react-router';
-import { HeartPulse, User2, ChevronUp } from 'lucide-react';
+} from "@/components/ui/sidebar";
+import { Link, useRouter } from "@tanstack/react-router";
+import { HeartPulse, User2, ChevronUp } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-} from '@/components/ui/dropdown-menu';
-import { useQueryClient } from '@tanstack/react-query';
-import { useUser } from '@/lib/context';
-import { toast } from 'sonner';
+} from "@/components/ui/dropdown-menu";
+import { useQueryClient } from "@tanstack/react-query";
+import { useUser } from "@/lib/context";
+import { toast } from "sonner";
+import { logout } from "@/lib/auth";
 
 const items = [
   {
-    title: 'Alerts',
-    url: '/alerts',
+    title: "Alerts",
+    url: "/alerts",
     icon: HeartPulse,
   },
   {
-    title: 'Dummy',
-    url: '/dummy',
+    title: "Dummy",
+    url: "/dummy",
     icon: HeartPulse,
   },
 ];
@@ -40,14 +41,21 @@ export const AppSidebar = () => {
   const queryClient = useQueryClient();
   const { email, setUser } = useUser();
 
-  const handleLogout = () => {
-    localStorage.removeItem('jwt');
-    queryClient.clear();
-    setUser(null);
+  const handleLogout = async () => {
+    try {
+      await logout();
 
-    toast.success('Successfully logged out');
+      localStorage.removeItem("jwt");
+      queryClient.clear();
+      setUser(null);
 
-    router.navigate({ to: '/' });
+      toast.success("Successfully logged out");
+
+      router.navigate({ to: "/" });
+    } catch (e) {
+      toast.error("Failed to log out.");
+      console.error(e);
+    }
   };
 
   return (

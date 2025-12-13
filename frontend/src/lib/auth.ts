@@ -1,5 +1,5 @@
-import axios from 'axios';
-import { jwtDecode } from 'jwt-decode';
+import axios from "axios";
+import { jwtDecode } from "jwt-decode";
 
 export type JWT = {
   access_token: string;
@@ -16,7 +16,7 @@ export type LoginDTO = {
 };
 
 export const login = ({ email, password }: LoginDTO) => {
-  return axios.post<JWT>('/login', {
+  return axios.post<JWT>("/login", {
     email,
     password,
   });
@@ -29,26 +29,30 @@ export const register = ({
   email: string;
   password: string;
 }) => {
-  return axios.post('/users/', {
+  return axios.post("/users/", {
     email,
     password,
   });
 };
 
+export const logout = () => {
+  return axios.post("/logout");
+};
+
 export const getAccessToken = () => {
-  const jwtString = localStorage.getItem('jwt');
-  if (jwtString == null) return '';
+  const jwtString = localStorage.getItem("jwt");
+  if (jwtString == null) return "";
 
   const jwt: JWT = JSON.parse(jwtString);
-  return jwt && jwt.access_token ? jwt.access_token : '';
+  return jwt && jwt.access_token ? jwt.access_token : "";
 };
 
 export const getRefreshToken = () => {
-  const jwtString = localStorage.getItem('jwt');
-  if (jwtString == null) return '';
+  const jwtString = localStorage.getItem("jwt");
+  if (jwtString == null) return "";
 
   const jwt: JWT = JSON.parse(jwtString);
-  return jwt && jwt.refresh_token ? jwt.refresh_token : '';
+  return jwt && jwt.refresh_token ? jwt.refresh_token : "";
 };
 
 export const extractClaims = (token: string) => {

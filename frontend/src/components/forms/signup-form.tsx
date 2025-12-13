@@ -1,17 +1,17 @@
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Field,
   FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
-} from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
-import { Link } from '@tanstack/react-router';
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Link } from "@tanstack/react-router";
 
-import { z } from 'zod';
-import { useForm } from '@tanstack/react-form';
+import { z } from "zod";
+import { useForm } from "@tanstack/react-form";
 
 type SignupFormProps = React.ComponentProps<typeof Card> & {
   onSubmit?: (data: {
@@ -25,22 +25,22 @@ type SignupFormProps = React.ComponentProps<typeof Card> & {
 const formSchema = z
   .object({
     email: z.email(),
-    password: z.string().min(8, 'Password must be at least 8 characters long'),
+    password: z.string().min(8, "Password must be at least 8 characters long"),
     confirmPassword: z
       .string()
-      .min(8, 'Password must be at least 8 characters long'),
+      .min(8, "Password must be at least 8 characters long"),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword'],
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
   });
 
 export function SignupForm({ ...props }: SignupFormProps) {
   const form = useForm({
     defaultValues: {
-      email: '',
-      password: '',
-      confirmPassword: '',
+      email: "",
+      password: "",
+      confirmPassword: "",
     },
     validators: {
       onSubmit: formSchema,

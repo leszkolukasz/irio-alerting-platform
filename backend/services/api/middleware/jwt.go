@@ -4,6 +4,7 @@ import (
 	"alerting-platform/api/dto"
 	"alerting-platform/api/models"
 	"alerting-platform/common/config"
+	"log"
 	"time"
 
 	jwt "github.com/appleboy/gin-jwt/v3"
@@ -11,10 +12,10 @@ import (
 	jwt_go "github.com/golang-jwt/jwt/v5"
 )
 
-const identityKey = "identity"
+const identityKey = "email"
 
 func GetJWTMiddleware() *jwt.GinJWTMiddleware {
-	authMiddleware, _ := jwt.New(&jwt.GinJWTMiddleware{
+	middleware := &jwt.GinJWTMiddleware{
 		IdentityKey:     identityKey,
 		Key:             []byte(config.GetConfig().Secret),
 		Timeout:         time.Minute * 15,
@@ -22,9 +23,26 @@ func GetJWTMiddleware() *jwt.GinJWTMiddleware {
 		Authenticator:   authenticator(),
 		IdentityHandler: identityHandler(),
 		PayloadFunc:     payloadFunc(),
-	})
+	}
 
-	return authMiddleware
+	middleware.EnableRedisStore(
+		jwt.WithRedisAddr(config.GetConfig().RedisHost+":"+config.GetConfig().RedisPort),
+		jwt.WithRedisAuth(config.GetConfig().RedisPassword, config.GetConfig().RedisDB),
+		jwt.WithRedisCache(128*1024*1024, time.Minute), // 128MB
+		jwt.WithRedisKeyPrefix(config.GetConfig().RedisPrefix+":jwt:"),
+	)
+
+	middleware, err := jwt.New(middleware)
+	if err != nil {
+		log.Fatal("JWT Error:" + err.Error())
+	}
+
+	err = middleware.MiddlewareInit()
+	if err != nil {
+		log.Fatal("authMiddleware.MiddlewareInit() Error:" + err.Error())
+	}
+
+	return middleware
 }
 
 func authenticator() func(c *gin.Context) (any, error) {
@@ -61,7 +79,7 @@ func payloadFunc() func(data any) jwt_go.MapClaims {
 	return func(data any) jwt_go.MapClaims {
 		if v, ok := data.(*models.User); ok {
 			return jwt_go.MapClaims{
-				"email": v.Email,
+				identityKey: v.Email,
 			}
 		}
 		return jwt_go.MapClaims{}

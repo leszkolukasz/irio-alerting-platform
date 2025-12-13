@@ -1,13 +1,13 @@
-import { useGlobalContext } from '@/lib/context';
-import axios, { AxiosError } from 'axios';
-import { getAccessToken, getRefreshToken } from './auth';
+import { useGlobalContext } from "@/lib/context";
+import axios, { AxiosError } from "axios";
+import { getAccessToken, getRefreshToken } from "./auth";
 
 axios.defaults.baseURL = import.meta.env.VITE_API_URL;
 
 const handleCouldNotRefreshToken = (err: AxiosError) => {
-  localStorage.removeItem('jwt');
+  localStorage.removeItem("jwt");
 
-  console.error('Could not refresh token. Logging out.');
+  console.error("Could not refresh token. Logging out.");
   console.debug(err);
 
   window.location.reload();
@@ -15,7 +15,7 @@ const handleCouldNotRefreshToken = (err: AxiosError) => {
 
 axios.interceptors.request.use((config) => {
   const token = getAccessToken();
-  if (token) config.headers['Authorization'] = 'Bearer ' + token;
+  if (token) config.headers["Authorization"] = "Bearer " + token;
   return config;
 });
 
@@ -25,7 +25,7 @@ axios.interceptors.response.use(
     const originalConfig = err.config;
 
     if (
-      !(originalConfig.url as string).startsWith('/login') &&
+      !(originalConfig.url as string).startsWith("/login") &&
       err.response &&
       err.response.status === 401
     ) {
@@ -37,7 +37,7 @@ axios.interceptors.response.use(
           const lock = useGlobalContext.getState().tokenRefreshLock;
 
           if (lock == null) {
-            const refreshReq = axios.post('/refresh', {
+            const refreshReq = axios.post("/refresh", {
               refresh_token: getRefreshToken(),
             });
 
@@ -49,7 +49,7 @@ axios.interceptors.response.use(
 
             const { access_token, refresh_token } = res.data;
             localStorage.setItem(
-              'jwt',
+              "jwt",
               JSON.stringify({
                 access_token,
                 refresh_token,

@@ -13,9 +13,6 @@ func RegisterRoutes(r *gin.Engine, authMiddleware *jwt.GinJWTMiddleware) {
 	v1 := r.Group("/v1")
 
 	v1.POST("/login", authMiddleware.LoginHandler)
-
-	// NOTE: Refresh tokens are stored in memory, so restarting the server will invalidate all refresh tokens.
-	// TODO: Add redis
 	v1.POST("/refresh", authMiddleware.RefreshHandler)
 
 	authenticated := v1.Group("/", authMiddleware.MiddlewareFunc())

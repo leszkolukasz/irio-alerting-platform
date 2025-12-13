@@ -1,10 +1,11 @@
 use flake
 
-export ENV="dev" # or "prod"
+export ENV="dev" # or prod
 export SECRET="secret"
 export PORT="8080"
 export POSTGRES_HOST="localhost"
 export POSTGRES_PORT="5432"
-export POSTGRES_DB="alerting_platform"
-export POSTGRES_USER="admin"
-export POSTGRES_PASSWORD="password"
+export REDIS_HOST="localhost"
+export REDIS_PORT="6379"
+export REDIS_DB="0"
+export REDIS_PASSWORD="password"

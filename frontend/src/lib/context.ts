@@ -1,7 +1,7 @@
-import { immer } from 'zustand/middleware/immer';
-import { create } from 'zustand';
-import { useShallow } from 'zustand/react/shallow';
-import { extractClaims, type JWT } from './auth';
+import { immer } from "zustand/middleware/immer";
+import { create } from "zustand";
+import { useShallow } from "zustand/react/shallow";
+import { extractClaims, type JWT } from "./auth";
 
 type GlobalContext = {
   email: string | null;
@@ -10,7 +10,7 @@ type GlobalContext = {
   tokenRefreshLock: Promise<unknown> | null;
 };
 
-const storedJWT = localStorage.getItem('jwt');
+const storedJWT = localStorage.getItem("jwt");
 const jwt: JWT | null = storedJWT != null ? JSON.parse(storedJWT) : null;
 
 export const useGlobalContext = create<GlobalContext>()(

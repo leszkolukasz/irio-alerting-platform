@@ -16,6 +16,8 @@ Direnv is configured to automatically enter the environment when you `cd` into t
 
 File `.envrc.example` contains a list of required environment variables. Copy it to `.envrc` and fill in the values. Then either source it or let direnv load it automatically.
 
+Each microservice may need additional environment variables defined in `.env` files in their respective directories.
+
 ## Code formatting and linting
 
 Makefile contains various commands for building, linting and formatting the code.

@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/caarlos0/env/v11"
+	"github.com/joho/godotenv"
 )
 
 const DEV = "dev"
@@ -19,6 +20,11 @@ type Config struct {
 	PostgresDB       string `env:"POSTGRES_DB,required"`
 	PostgresUser     string `env:"POSTGRES_USER,required"`
 	PostgresPassword string `env:"POSTGRES_PASSWORD,required"`
+	RedisHost        string `env:"REDIS_HOST,required"`
+	RedisPort        string `env:"REDIS_PORT,required"`
+	RedisDB          int    `env:"REDIS_DB" default:"0"`
+	RedisPassword    string `env:"REDIS_PASSWORD" required:""`
+	RedisPrefix      string `env:"REDIS_PREFIX" required:""`
 }
 
 var (
@@ -28,6 +34,8 @@ var (
 
 func GetConfig() *Config {
 	once.Do(func() {
+		_ = godotenv.Load()
+
 		cfg = &Config{}
 		err := env.Parse(cfg)
 

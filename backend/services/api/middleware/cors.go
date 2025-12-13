@@ -10,6 +10,9 @@ import (
 func GetCORSMiddleware() gin.HandlerFunc {
 	corsConfig := cors.DefaultConfig()
 
+	corsConfig.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization"}
+	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
+
 	if config.GetConfig().Env == config.DEV {
 		corsConfig.AllowAllOrigins = true
 		return cors.New(corsConfig)

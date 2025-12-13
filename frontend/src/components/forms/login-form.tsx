@@ -1,33 +1,33 @@
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Field,
   FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
-} from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
-import { Link } from '@tanstack/react-router';
-import { z } from 'zod';
-import { useForm } from '@tanstack/react-form';
-import type { LoginDTO } from '@/lib/auth';
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Link } from "@tanstack/react-router";
+import { z } from "zod";
+import { useForm } from "@tanstack/react-form";
+import type { LoginDTO } from "@/lib/auth";
 
-type LoginFormProps = Omit<React.ComponentProps<typeof Card>, 'onSubmit'> & {
+type LoginFormProps = Omit<React.ComponentProps<typeof Card>, "onSubmit"> & {
   onSubmit?: (data: LoginDTO) => void;
 };
 
 const formSchema = z.object({
   email: z.email(),
-  password: z.string().min(8, 'Password must be at least 8 characters long'),
+  password: z.string().min(8, "Password must be at least 8 characters long"),
 });
 
 export function LoginForm({ className, onSubmit, ...props }: LoginFormProps) {
   const form = useForm({
     defaultValues: {
-      email: '',
-      password: '',
+      email: "",
+      password: "",
     },
     validators: {
       onSubmit: formSchema,
@@ -38,7 +38,7 @@ export function LoginForm({ className, onSubmit, ...props }: LoginFormProps) {
   });
 
   return (
-    <div className={cn('flex flex-col gap-6', className)} {...props}>
+    <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader>
           <CardTitle>Login to your account</CardTitle>

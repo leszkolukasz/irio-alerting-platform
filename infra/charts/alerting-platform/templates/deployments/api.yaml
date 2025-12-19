@@ -19,7 +19,7 @@ spec:
           image: "{{ .Values.gcloud.registryURL }}/alerting-platform-api:latest"
           imagePullPolicy: Always
           ports:
-            - containerPort: {{ .Values.env.API_PORT }}
+            - containerPort: {{ .Values.env.REST_API_PORT }}
           env:
           {{- range $key, $value := .Values.env }}
             - name: {{ $key | quote }}
@@ -35,7 +35,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /health
-              port: {{ .Values.env.API_PORT }}
+              port: {{ .Values.env.REST_API_PORT }}
             initialDelaySeconds: 30
             periodSeconds: 5
         - name: cloud-sql-proxy

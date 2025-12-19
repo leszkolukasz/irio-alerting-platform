@@ -15,3 +15,7 @@ To run the API service locally, use the following command:
 ```bash
 go run .
 ```
+
+## gRPC testing
+
+To test the gRPC endpoints, you can use [Evans](https://github.com/ktr0731/evans).

@@ -9,5 +9,5 @@ spec:
   selector:
     app: alerting-platform-api
   ports:
-    - port: {{ .Values.env.API_PORT }}
-      targetPort: {{ .Values.env.API_PORT }}
+    - port: {{ .Values.env.REST_API_PORT }}
+      targetPort: {{ .Values.env.REST_API_PORT }}

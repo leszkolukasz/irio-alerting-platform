@@ -15,4 +15,4 @@ spec:
               service:
                 name: alerting-platform-api
                 port:
-                  number: {{ .Values.env.API_PORT }}
+                  number: {{ .Values.env.REST_API_PORT }}

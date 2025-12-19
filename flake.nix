@@ -21,6 +21,7 @@
               # Backend
               go
               golangci-lint
+              evans
 
               # Frontend
               pnpm
@@ -29,6 +30,10 @@
               # Other
               gnumake
               kubernetes-helm
+              infracost
+              protobuf
+              protoc-gen-go
+              protoc-gen-go-grpc
             ];
 
             shellHook = ''

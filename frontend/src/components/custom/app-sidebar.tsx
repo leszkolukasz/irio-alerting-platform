@@ -39,7 +39,7 @@ export const AppSidebar = () => {
   const handleLogout = async () => {
     try {
       await logout();
-
+    } finally {
       localStorage.removeItem("jwt");
       queryClient.clear();
       setUser(null);
@@ -47,9 +47,6 @@ export const AppSidebar = () => {
       toast.success("Successfully logged out");
 
       router.navigate({ to: "/" });
-    } catch (e) {
-      toast.error("Failed to log out.");
-      console.error(e);
     }
   };
 

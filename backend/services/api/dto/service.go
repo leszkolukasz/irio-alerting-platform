@@ -1,6 +1,6 @@
 package dto
 
-type CreateMonitoredServiceRequest struct {
+type MonitoredServiceRequest struct {
 	Name                string  `json:"name" binding:"required"`
 	URL                 string  `json:"url" binding:"required,url"`
 	Port                int     `json:"port" binding:"required,min=1,max=65535"`

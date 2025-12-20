@@ -20,9 +20,9 @@ import {
   InputGroupInput,
 } from "../ui/input-group";
 import { XIcon } from "lucide-react";
-import { DialogClose } from "../ui/dialog";
 
-type CreateServiceFormProps = {
+type ServiceFormProps = {
+  initialValues?: Omit<MonitoredService, "id" | "status">;
   onSubmit?: (data: Omit<MonitoredService, "id" | "status">) => void;
 };
 
@@ -55,19 +55,34 @@ const formSchema = z.object({
     .max(2, "You can add up to 2 oncallers."),
 });
 
-export function CreateServiceForm({
+const extractOncallers = (service: Omit<MonitoredService, "id" | "status">) => {
+  const oncallers = [];
+  oncallers.push({ email: service.firstOncallerEmail });
+  if (service.secondOncallerEmail) {
+    oncallers.push({ email: service.secondOncallerEmail });
+  }
+  return oncallers;
+};
+
+export function ServiceForm({
+  initialValues,
   onSubmit,
   ...props
-}: CreateServiceFormProps) {
+}: ServiceFormProps) {
   const form = useForm({
     defaultValues: {
-      name: "",
-      url: "",
-      port: "80",
-      allowedResponseTime: "15",
-      healthCheckInterval: "60",
-      alertWindow: "300",
-      oncallers: [{ email: "" }],
+      name: initialValues?.name ?? "",
+      url: initialValues?.url ?? "",
+      port: initialValues?.port?.toString() ?? "80",
+      allowedResponseTime:
+        initialValues?.allowedResponseTime?.toString() ?? "15",
+      healthCheckInterval:
+        initialValues?.healthCheckInterval?.toString() ?? "60",
+      alertWindow: initialValues?.alertWindow?.toString() ?? "300",
+      oncallers:
+        initialValues != null
+          ? extractOncallers(initialValues)
+          : [{ email: "" }],
     },
     validators: {
       onSubmit: formSchema,
@@ -347,9 +362,7 @@ export function CreateServiceForm({
             }}
           </form.Field>
           <Field className="mt-5">
-            <DialogClose asChild>
-              <Button type="submit">Create</Button>
-            </DialogClose>
+            <Button type="submit">Submit</Button>
           </Field>
         </FieldGroup>
       </form>

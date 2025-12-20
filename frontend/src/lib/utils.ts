@@ -24,3 +24,13 @@ export const extractErrorMessage = (error: unknown) => {
 
   return error.message || "An unknown error occurred.";
 };
+
+export const requireNotNullish = <T>(
+  value: T | null | undefined,
+  message?: string
+): T => {
+  if (value == null) {
+    throw new Error(message || "Value cannot be null");
+  }
+  return value;
+};

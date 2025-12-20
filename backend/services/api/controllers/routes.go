@@ -31,6 +31,9 @@ func RegisterRoutes(r *gin.Engine, authMiddleware *jwt.GinJWTMiddleware) {
 		{
 			services.POST("/", CreateMonitoredService)
 			services.GET("/me", GetMyMonitoredServices)
+			services.GET("/:id", GetMonitoredServiceByID)
+			services.PUT("/:id", UpdateMonitoredService)
+			services.DELETE("/:id", DeleteMonitoredService)
 		}
 	}
 }

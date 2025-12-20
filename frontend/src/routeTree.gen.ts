@@ -14,7 +14,8 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UnauthenticatedSignUpRouteImport } from './routes/_unauthenticated/sign-up'
 import { Route as UnauthenticatedSignInRouteImport } from './routes/_unauthenticated/sign-in'
-import { Route as AuthenticatedServicesRouteImport } from './routes/_authenticated/services'
+import { Route as AuthenticatedServicesIndexRouteImport } from './routes/_authenticated/services.index'
+import { Route as AuthenticatedServicesServiceIDRouteImport } from './routes/_authenticated/services.$serviceID'
 
 const UnauthenticatedRoute = UnauthenticatedRouteImport.update({
   id: '/_unauthenticated',
@@ -39,46 +40,62 @@ const UnauthenticatedSignInRoute = UnauthenticatedSignInRouteImport.update({
   path: '/sign-in',
   getParentRoute: () => UnauthenticatedRoute,
 } as any)
-const AuthenticatedServicesRoute = AuthenticatedServicesRouteImport.update({
-  id: '/services',
-  path: '/services',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
+const AuthenticatedServicesIndexRoute =
+  AuthenticatedServicesIndexRouteImport.update({
+    id: '/services/',
+    path: '/services/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedServicesServiceIDRoute =
+  AuthenticatedServicesServiceIDRouteImport.update({
+    id: '/services/$serviceID',
+    path: '/services/$serviceID',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/services': typeof AuthenticatedServicesRoute
   '/sign-in': typeof UnauthenticatedSignInRoute
   '/sign-up': typeof UnauthenticatedSignUpRoute
+  '/services/$serviceID': typeof AuthenticatedServicesServiceIDRoute
+  '/services': typeof AuthenticatedServicesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/services': typeof AuthenticatedServicesRoute
   '/sign-in': typeof UnauthenticatedSignInRoute
   '/sign-up': typeof UnauthenticatedSignUpRoute
+  '/services/$serviceID': typeof AuthenticatedServicesServiceIDRoute
+  '/services': typeof AuthenticatedServicesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/_unauthenticated': typeof UnauthenticatedRouteWithChildren
-  '/_authenticated/services': typeof AuthenticatedServicesRoute
   '/_unauthenticated/sign-in': typeof UnauthenticatedSignInRoute
   '/_unauthenticated/sign-up': typeof UnauthenticatedSignUpRoute
+  '/_authenticated/services/$serviceID': typeof AuthenticatedServicesServiceIDRoute
+  '/_authenticated/services/': typeof AuthenticatedServicesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/services' | '/sign-in' | '/sign-up'
+  fullPaths:
+    | '/'
+    | '/sign-in'
+    | '/sign-up'
+    | '/services/$serviceID'
+    | '/services'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/services' | '/sign-in' | '/sign-up'
+  to: '/' | '/sign-in' | '/sign-up' | '/services/$serviceID' | '/services'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/_unauthenticated'
-    | '/_authenticated/services'
     | '/_unauthenticated/sign-in'
     | '/_unauthenticated/sign-up'
+    | '/_authenticated/services/$serviceID'
+    | '/_authenticated/services/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -124,22 +141,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UnauthenticatedSignInRouteImport
       parentRoute: typeof UnauthenticatedRoute
     }
-    '/_authenticated/services': {
-      id: '/_authenticated/services'
+    '/_authenticated/services/': {
+      id: '/_authenticated/services/'
       path: '/services'
       fullPath: '/services'
-      preLoaderRoute: typeof AuthenticatedServicesRouteImport
+      preLoaderRoute: typeof AuthenticatedServicesIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/services/$serviceID': {
+      id: '/_authenticated/services/$serviceID'
+      path: '/services/$serviceID'
+      fullPath: '/services/$serviceID'
+      preLoaderRoute: typeof AuthenticatedServicesServiceIDRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
   }
 }
 
 interface AuthenticatedRouteChildren {
-  AuthenticatedServicesRoute: typeof AuthenticatedServicesRoute
+  AuthenticatedServicesServiceIDRoute: typeof AuthenticatedServicesServiceIDRoute
+  AuthenticatedServicesIndexRoute: typeof AuthenticatedServicesIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
-  AuthenticatedServicesRoute: AuthenticatedServicesRoute,
+  AuthenticatedServicesServiceIDRoute: AuthenticatedServicesServiceIDRoute,
+  AuthenticatedServicesIndexRoute: AuthenticatedServicesIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

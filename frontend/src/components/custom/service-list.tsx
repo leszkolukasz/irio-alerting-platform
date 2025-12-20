@@ -23,16 +23,10 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { ArrowUpDown } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { useRouter } from "@tanstack/react-router";
 import { Avatar, AvatarImage } from "../ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-
-const serviceStatusToColor = {
-  UP: "#22c55e",
-  DOWN: "#ef4444",
-  UNKNOWN: "#888888",
-} as const;
+import { StatusBadge } from "./status-badge";
 
 const createSortableHeader = ({
   name,
@@ -55,13 +49,7 @@ const columns: ColumnDef<MonitoredService, MonitoredService>[] = [
     header: (data) => createSortableHeader({ name: "Status", ...data }),
     cell: ({ row }) => (
       <div className="capitalize w-25">
-        <Badge
-          style={{
-            backgroundColor: serviceStatusToColor[row.original.status],
-          }}
-        >
-          {row.getValue("status")}
-        </Badge>
+        <StatusBadge status={row.original.status} />
       </div>
     ),
   },
@@ -173,7 +161,12 @@ export const ServiceList = ({ services }: Props) => {
                 key={row.id}
                 data-state={row.getIsSelected() && "selected"}
                 className="hover:cursor-pointer"
-                onClick={() => router.navigate({ to: "/services" })}
+                onClick={() =>
+                  router.navigate({
+                    to: "/services/$serviceID",
+                    params: { serviceID: row.original.id.toString() },
+                  })
+                }
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id} className="h-12">

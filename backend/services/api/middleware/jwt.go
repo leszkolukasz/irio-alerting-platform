@@ -24,7 +24,7 @@ func GetJWTMiddleware() *jwt.GinJWTMiddleware {
 	middleware := &jwt.GinJWTMiddleware{
 		IdentityKey:     IdentityKey,
 		Key:             []byte(config.GetConfig().Secret),
-		Timeout:         time.Minute * 15,
+		Timeout:         time.Hour * 24, // TODO; Refresh token returns empty claims for some reason.
 		MaxRefresh:      time.Hour * 24,
 		Authenticator:   authenticator(),
 		IdentityHandler: identityHandler(),
@@ -97,6 +97,21 @@ func payloadFunc() func(data any) jwt_go.MapClaims {
 				"email":     v.Email,
 			}
 		}
+
+		if v, ok := data.(jwt_go.MapClaims); ok {
+			return jwt_go.MapClaims{
+				IdentityKey: v[IdentityKey],
+				"email":     v["email"],
+			}
+		}
+
+		if v, ok := data.(map[string]interface{}); ok {
+			return jwt_go.MapClaims{
+				IdentityKey: v[IdentityKey],
+				"email":     v["email"],
+			}
+		}
+
 		return jwt_go.MapClaims{}
 	}
 }

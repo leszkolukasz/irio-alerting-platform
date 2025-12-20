@@ -1,7 +1,7 @@
 import { ServiceList } from "@/components/custom/service-list";
 import { Button } from "@/components/ui/button";
 import {
-  myServicesQuery,
+  useGetMyServices,
   useCreateService,
   type MonitoredService,
 } from "@/lib/api/service";
@@ -13,19 +13,30 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { PlusCircle } from "lucide-react";
-import { CreateServiceForm } from "@/components/forms/create-service-form";
-import { useQuery } from "@tanstack/react-query";
+import { ServiceForm } from "@/components/forms/service-form";
 import { Spinner } from "@/components/ui/spinner";
+import { useState } from "react";
 
-export const Route = createFileRoute("/_authenticated/services")({
+export const Route = createFileRoute("/_authenticated/services/")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  const { mutate: createService } = useCreateService();
-  const { data: services = [], isLoading } = useQuery(myServicesQuery);
+  const router = useRouter();
+  const { mutateAsync: createService } = useCreateService();
+  const { data: services = [], isLoading } = useGetMyServices();
+
+  const handleOnSubmit = async (
+    data: Omit<MonitoredService, "id" | "status">
+  ) => {
+    const result = await createService(data);
+    router.navigate({
+      to: "/services/$serviceID",
+      params: { serviceID: result.serviceID.toString() },
+    });
+  };
 
   return (
     <section className="w-3/4">
@@ -34,7 +45,7 @@ function RouteComponent() {
           <Spinner className="mx-auto size-8" />
         ) : (
           <>
-            <NewServiceDialog onSubmit={createService}>
+            <NewServiceDialog onSubmit={handleOnSubmit}>
               <Button className="hover:cursor-pointer w-35">
                 <PlusCircle />
                 Create new
@@ -55,8 +66,15 @@ const NewServiceDialog = ({
   children: React.ReactNode;
   onSubmit: (data: Omit<MonitoredService, "id" | "status">) => void;
 }) => {
+  const [open, setOpen] = useState(false);
+
+  const handleSubmit = (data: Omit<MonitoredService, "id" | "status">) => {
+    onSubmit(data);
+    setOpen(false);
+  };
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -67,7 +85,7 @@ const NewServiceDialog = ({
         </DialogHeader>
 
         <div className="mt-5">
-          <CreateServiceForm onSubmit={onSubmit} />
+          <ServiceForm onSubmit={handleSubmit} />
         </div>
       </DialogContent>
     </Dialog>

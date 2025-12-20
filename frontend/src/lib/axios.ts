@@ -46,10 +46,13 @@ axios.interceptors.response.use(
             });
 
             const res = await refreshReq;
-            localStorage.setItem("jwt", {
-              ...JSON.parse(localStorage.getItem("jwt") || "{}"),
-              ...res.data,
-            });
+            localStorage.setItem(
+              "jwt",
+              JSON.stringify({
+                ...JSON.parse(localStorage.getItem("jwt") || "{}"),
+                ...res.data,
+              })
+            );
           } else {
             await lock;
           }

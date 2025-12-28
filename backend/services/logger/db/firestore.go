@@ -33,8 +33,9 @@ func (r *LogRepository) SaveMetric(ctx context.Context, metricEntry MetricLog) e
 	return nil
 }
 
-func (r *LogRepository) Close() {
+func (r *LogRepository) Close() error {
 	if r.client != nil {
-		r.client.Close()
+		return r.client.Close()
 	}
+	return nil
 }

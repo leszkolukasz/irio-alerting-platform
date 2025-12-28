@@ -26,6 +26,7 @@ type Config struct {
 	RedisDB          int    `env:"REDIS_DB" default:"0"`
 	RedisPassword    string `env:"REDIS_PASSWORD,required"`
 	RedisPrefix      string `env:"REDIS_PREFIX,required"`
+	ProjectID        string `env:"PROJECT_ID" default:"fill_this"`
 }
 
 var (

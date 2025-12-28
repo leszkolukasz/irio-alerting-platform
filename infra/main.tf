@@ -106,6 +106,14 @@ resource "google_sql_database" "api_db" {
   instance = google_sql_database_instance.db_instance.name
 }
 
+### Firestore
+resource "google_firestore_database" "firestore_db" {
+  project     = var.project_id
+  name        = "logger_db"
+  location_id = var.region
+  type        = "FIRESTORE_NATIVE"
+}
+
 # Without this you cannot connect to Cloud SQL
 resource "google_project_service" "sql_admin" {
   service = "sqladmin.googleapis.com"

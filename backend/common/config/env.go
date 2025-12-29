@@ -25,7 +25,9 @@ type Config struct {
 	RedisPort        string `env:"REDIS_PORT,required"`
 	RedisDB          int    `env:"REDIS_DB" default:"0"`
 	RedisPassword    string `env:"REDIS_PASSWORD,required"`
-	RedisPrefix      string `env:"REDIS_PREFIX,required"`
+	RedisPrefix      string `env:"REDIS_PREFIX" default:"api"`
+	ProjectID        string `env:"PROJECT_ID" default:"fill_this"`
+	FirestoreDB      string `env:"FIRESTORE_DB" default:"logger-db"`
 }
 
 var (

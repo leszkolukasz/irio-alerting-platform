@@ -10,20 +10,15 @@ COPY services/logger/go.mod services/logger/go.sum ./services/logger/
 RUN go mod download
 
 COPY common/ ./common/
-COPY services/api/ ./services/api/
+COPY services/logger/ ./services/logger/
 
-WORKDIR /app/services/api
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/api ./main.go
+WORKDIR /app/services/logger
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/logger .
 
 FROM alpine:latest
 
 WORKDIR /root/
 
-COPY --from=builder /app/api .
+COPY --from=builder /app/logger .
 
-# TODO: Make sure .env has no sensitive data
-COPY --from=builder /app/services/api/.env .
-
-EXPOSE 8080
-
-CMD ["./api"]
+CMD ["./logger"]

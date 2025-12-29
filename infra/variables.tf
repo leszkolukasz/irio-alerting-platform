@@ -9,10 +9,15 @@ variable "db_password" {
 
 variable "project_id" {
   type    = string
-  default = "leafy-tenure-475014-a1"
+  default = "fill_this"
 }
 
 variable "region" {
   type    = string
   default = "europe-west1"
+}
+
+variable "firestore_db" {
+  type        = string
+  default     = "logger-db"
 }

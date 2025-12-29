@@ -51,6 +51,10 @@ resource "helm_release" "alerting-platform" {
     {
       name  = "gcloud.registryURL"
       value = google_artifact_registry_repository.docker_registry.registry_uri
+    },
+    {
+      name  = "env.FIRESTORE_DB"
+      value = var.firestore_db
     }
   ]
 

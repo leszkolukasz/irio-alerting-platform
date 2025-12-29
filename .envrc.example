@@ -13,3 +13,7 @@ export REDIS_HOST="localhost"
 export REDIS_PORT="6379"
 export REDIS_DB="0"
 export REDIS_PASSWORD="password"
+export PROJECT_ID="fill_this"
+export TF_VAR_project_id=$PROJECT_ID
+export FIRESTORE_DB="logger-db"
+export TF_VAR_firestore_db=$FIRESTORE_DB

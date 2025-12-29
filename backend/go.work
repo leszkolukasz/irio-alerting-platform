@@ -1,4 +1,7 @@
 go 1.25.4
 
 use ./common
+
 use ./services/api
+
+use ./services/logger

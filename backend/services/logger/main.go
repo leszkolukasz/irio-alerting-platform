@@ -20,7 +20,7 @@ func main() {
 	}
 
 	// Firestore
-	repo, err := db.NewLogRepository(ctx, cfg.ProjectID)
+	repo, err := db.NewLogRepository(ctx, cfg.ProjectID, cfg.FirestoreDB)
 	if err != nil {
 		log.Fatalf("Failed to init Firestore: %v", err)
 	}
@@ -63,6 +63,7 @@ func main() {
 			}
 		}(subID, eventType)
 	}
+	log.Println("Logger service started and listening to Pub/Sub subscriptions...")
 
 	wg.Wait()
 }

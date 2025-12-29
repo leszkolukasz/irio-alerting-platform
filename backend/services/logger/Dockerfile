@@ -12,14 +12,12 @@ COPY common/ ./common/
 COPY services/logger/ ./services/logger/
 
 WORKDIR /app/services/logger
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/logger ./main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/logger .
 
 FROM alpine:latest
 
 WORKDIR /root/
 
 COPY --from=builder /app/logger .
-
-COPY --from=builder /app/services/logger/.env .
 
 CMD ["./logger"]

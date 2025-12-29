@@ -12,7 +12,7 @@ type LogRepository struct {
 
 type IncidentLog struct {
 	IncidentID   string                 `firestore:"incident_id"`
-	OnCallerData map[string]interface{} `firestore:"oncaller_data, omitempty"`
+	OnCallerData map[string]interface{} `firestore:"oncaller_data,omitempty"`
 	Timestamp    time.Time              `firestore:"timestamp"`
 	Type         string                 `firestore:"type"`
 }

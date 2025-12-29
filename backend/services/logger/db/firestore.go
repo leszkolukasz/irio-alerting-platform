@@ -7,8 +7,8 @@ import (
 	"cloud.google.com/go/firestore"
 )
 
-func NewLogRepository(ctx context.Context, projectID string) (*LogRepository, error) {
-	client, err := firestore.NewClient(ctx, projectID)
+func NewLogRepository(ctx context.Context, projectID string, firestoreDB string) (*LogRepository, error) {
+	client, err := firestore.NewClientWithDatabase(ctx, projectID, firestoreDB)
 	if err != nil {
 		return nil, err
 	}

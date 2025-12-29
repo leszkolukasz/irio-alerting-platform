@@ -109,7 +109,7 @@ resource "google_sql_database" "api_db" {
 ### Firestore
 resource "google_firestore_database" "firestore_db" {
   project     = var.project_id
-  name        = "logger_db"
+  name        = var.firestore_db
   location_id = var.region
   type        = "FIRESTORE_NATIVE"
 }

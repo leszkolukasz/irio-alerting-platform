@@ -17,6 +17,7 @@ env:
   REDIS_HOST: null
   REDIS_PORT: null
   REDIS_DB: 0
+  FIRESTORE_DB: null
 
 secrets:
   SECRET: secret # TODO: To powinno być gdzieś indziej ustawiane

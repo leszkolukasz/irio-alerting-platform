@@ -20,5 +20,5 @@ go run .
 To test if it works, messages can be created manually in Cloud Console or using gcloud CLI. Example:
 
 ```bash
-gcloud pubsub topics publish service-up   --message='{"service_id": "payment-gateway-01", "timestamp": "2025-12-29T16:55:00Z"}'
+gcloud pubsub topics publish service-up   --message='{"service_id": "payment-gateway-01"}'
 ```

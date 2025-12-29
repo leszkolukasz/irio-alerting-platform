@@ -21,7 +21,16 @@ spec:
           env:
             - name: PROJECT_ID
               value: {{ .Values.gcloud.projectID | quote }}
+              
           {{- range $key, $value := .Values.env }}
             - name: {{ $key | quote }}
               value: {{ $value | required (print "Missing value: " $key) | quote }}
+          {{- end }}
+
+          {{- range $key, $value := .Values.secrets }}
+            - name: {{ $key | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Release.Name }}-secrets
+                  key: {{ $key | quote }}
           {{- end }}

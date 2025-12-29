@@ -4,6 +4,7 @@ WORKDIR /app
 
 COPY go.work go.work.sum ./
 COPY common/go.mod common/go.sum ./common/
+COPY services/api/go.mod services/api/go.sum ./services/api/
 COPY services/logger/go.mod services/logger/go.sum ./services/logger/
 
 RUN go mod download

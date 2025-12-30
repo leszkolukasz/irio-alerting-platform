@@ -1,0 +1,63 @@
+package internal
+
+import (
+	"alerting-plafform/incident-manager/rpc"
+	"context"
+	"sync"
+
+	"cloud.google.com/go/pubsub"
+)
+
+type ServiceInfo struct {
+	ID uint64
+	// DownSince           int64 // stored in Redis
+	AlertWindow         int // in seconds
+	AllowedResponseTime int // in minutes
+	Oncallers           []string
+}
+
+const (
+	IncidentStateStarted             = "STARTED"
+	IncidentStateWaitingForFirstAck  = "WAITING_FOR_FIRST_ACK"
+	IncidentStateWaitingForSecondAck = "WAITING_FOR_SECOND_ACK"
+)
+
+type IncidentInfo struct {
+	IncidentID string `redis:"incident_id"`
+	ServiceID  uint64 `redis:"service_id"`
+	State      string `redis:"state"`
+
+	// Copied in case service info is changed through API
+	AllowedResponseTime int    `redis:"allowed_response_time"`
+	FirstOncaller       string `redis:"first_oncaller"`
+	SecondOncaller      string `redis:"second_oncaller"`
+}
+
+type ManagerState struct {
+	mu       sync.Mutex
+	psClient *pubsub.Client
+	Services map[uint64]ServiceInfo
+}
+
+func NewManagerState(ctx context.Context, psClient *pubsub.Client) *ManagerState {
+	state := &ManagerState{
+		mu:       sync.Mutex{},
+		psClient: psClient,
+		Services: make(map[uint64]ServiceInfo),
+	}
+
+	servicesInfo := rpc.GetAllServicesInfo(ctx)
+
+	for _, svc := range servicesInfo.Services {
+		service := ServiceInfo{
+			ID:                  svc.ServiceId,
+			AlertWindow:         int(svc.AlertWindow),
+			AllowedResponseTime: int(svc.AllowedResponseTime),
+			Oncallers:           svc.Oncallers,
+		}
+
+		state.Services[service.ID] = service
+	}
+
+	return state
+}

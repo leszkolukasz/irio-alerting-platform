@@ -38,7 +38,7 @@ func Init(psClient *pubsub.Client, subscriptions map[string]string) {
 		}
 
 		if !exists {
-			sub, err = psClient.CreateSubscription(context.Background(), subID, pubsub.SubscriptionConfig{
+			_, err = psClient.CreateSubscription(context.Background(), subID, pubsub.SubscriptionConfig{
 				Topic: topic,
 			})
 			if err != nil {
@@ -50,7 +50,8 @@ func Init(psClient *pubsub.Client, subscriptions map[string]string) {
 	}
 }
 
-func SetupSubscriptions(ctx context.Context, psClient *pubsub.Client, subscriptions map[string]string, wg *sync.WaitGroup, handler_func func(context.Context, PubSubMessage, string)) {
+func SetupSubscriptions(ctx context.Context, psClient *pubsub.Client, subscriptions map[string]string, wg *sync.WaitGroup,
+	handler_func func(context.Context, PubSubMessage, string)) {
 	for subID, eventType := range subscriptions {
 		wg.Add(1)
 
@@ -58,7 +59,7 @@ func SetupSubscriptions(ctx context.Context, psClient *pubsub.Client, subscripti
 			defer wg.Done()
 
 			sub := psClient.Subscription(sid)
-			sub.ReceiveSettings.MaxOutstandingMessages = 10
+			sub.ReceiveSettings.MaxOutstandingMessages = -1 // TODO: How to tune this?
 
 			err := sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
 				adapter := &PubSubMessageAdapter{Msg: msg}

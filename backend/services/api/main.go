@@ -16,7 +16,7 @@ import (
 	"alerting-platform/api/middleware"
 	"alerting-platform/api/rpc"
 	"alerting-platform/common/config"
-	alert_pb "alerting-platform/common/rpc"
+	incident_rpc "alerting-platform/common/rpc"
 )
 
 func main() {
@@ -70,7 +70,7 @@ func runRPCServer() {
 	}
 
 	grpcServer := grpc.NewServer()
-	alert_pb.RegisterAlertServiceServer(grpcServer, &rpc.AlertServiceServer{})
+	incident_rpc.RegisterIncidentManagerServiceServer(grpcServer, &rpc.IncidentManagerServiceServer{})
 
 	reflection.Register(grpcServer)
 

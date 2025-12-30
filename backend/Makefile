@@ -1,4 +1,4 @@
-MODULES = ./common ./services/api
+MODULES = ./common ./services/api ./services/incident-manager ./services/logger
 
 .PHONY: lint format
 

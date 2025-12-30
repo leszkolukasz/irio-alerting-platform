@@ -16,10 +16,6 @@ func main() {
 	ctx := context.Background()
 	cfg := config.GetConfig()
 
-	if cfg.ProjectID == "" {
-		log.Fatal("PROJECT_ID is required")
-	}
-
 	// Firestore
 	repo, err := db.NewLogRepository(ctx, cfg.ProjectID, cfg.FirestoreDB)
 	if err != nil {
@@ -35,12 +31,12 @@ func main() {
 	defer psClient.Close()
 
 	subscriptions := map[string]string{
-		"logger-incident-start":      "IncidentStart",
-		"logger-incident-resolved":   "IncidentResolved",
-		"logger-incident-timeout":    "IncidentAcknowledgeTimeout",
-		"logger-incident-unresolved": "IncidentUnresolved",
-		"logger-service-up":          "ServiceUp",
-		"logger-service-down":        "ServiceDown",
+		"logger-incident-start":      pubsub_common.IncidentStartTopic,
+		"logger-incident-resolved":   pubsub_common.IncidentResolvedTopic,
+		"logger-incident-timeout":    pubsub_common.IncidentAcknowledgeTimeoutTopic,
+		"logger-incident-unresolved": pubsub_common.IncidentUnresolvedTopic,
+		"logger-service-up":          pubsub_common.ServiceUpTopic,
+		"logger-service-down":        pubsub_common.ServiceDownTopic,
 	}
 
 	pubsub_common.Init(psClient, subscriptions)

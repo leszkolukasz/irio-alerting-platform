@@ -2,9 +2,8 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
 	"log"
-	"time"
 
 	"alerting-platform/common/pubsub"
 	db "logger/db"
@@ -21,37 +20,25 @@ func HandleMessage(
 	eventType string,
 	repo Repository,
 ) {
-	var payload pubsub.PubSubPayload
-
-	if err := json.Unmarshal(msg.GetData(), &payload); err != nil {
-		log.Printf("[CRITICAL] Error unmarshalling JSON from %s: %v. Dropping message.", eventType, err)
+	payload, eventTime, err := pubsub.ExtractPayload(msg)
+	if err != nil {
+		log.Printf("[CRITICAL] Error extracting payload for topic %s: %v. Dropping message.", eventType, err)
 		msg.Ack()
 		return
 	}
 
-	eventTime := msg.GetPublishTime()
-	if payload.Timestamp != "" {
-		if t, err := time.Parse(time.RFC3339, payload.Timestamp); err == nil {
-			eventTime = t
-		}
-	}
-	if eventTime.IsZero() {
-		eventTime = time.Now()
-	}
-
-	var err error
 	if eventType == "ServiceUp" || eventType == "ServiceDown" {
 		err = repo.SaveMetric(ctx, db.MetricLog{
-			ServiceID: payload.ServiceID,
-			Timestamp: eventTime,
+			ServiceID: fmt.Sprintf("%d", payload.ServiceID),
+			Timestamp: *eventTime,
 			Type:      eventType,
 		})
 	} else {
 		err = repo.SaveLog(ctx, db.IncidentLog{
-			IncidentID:   payload.IncidentID,
-			OnCallerData: payload.OnCallerData,
-			Timestamp:    eventTime,
-			Type:         eventType,
+			IncidentID: payload.IncidentID,
+			Oncaller:   payload.OnCaller,
+			Timestamp:  *eventTime,
+			Type:       eventType,
 		})
 	}
 

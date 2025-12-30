@@ -73,3 +73,13 @@ resource "google_pubsub_subscription" "logger_service_down" {
   name  = "logger-service-down"
   topic = google_pubsub_topic.service_down.name
 }
+
+resource "google_pubsub_subscription" "incident_manager_service_up" {
+  name  = "incident-manager-service-up"
+  topic = google_pubsub_topic.service_up.name
+}
+
+resource "google_pubsub_subscription" "incident_manager_service_down" {
+  name  = "incident-manager-service-down"
+  topic = google_pubsub_topic.service_down.name
+}

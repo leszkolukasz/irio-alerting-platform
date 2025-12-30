@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package rpc;
+
+option go_package = "alerting-platform/common/rpc";
+
+import "google/protobuf/empty.proto";
+
+service IncidentManagerService {
+  rpc GetAllServicesInfo (google.protobuf.Empty) returns (ServicesInfoForIncident);
+}
+
+message ServicesInfoForIncident {
+    repeated ServiceInfoForIncident services = 1;
+}
+
+message ServiceInfoForIncident {
+    uint64 service_id = 1;
+    int64 alert_window = 2;
+    int64 allowed_response_time = 3;
+    repeated string oncallers = 4;
+}

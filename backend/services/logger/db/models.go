@@ -11,10 +11,10 @@ type LogRepository struct {
 }
 
 type IncidentLog struct {
-	IncidentID   string                 `firestore:"incident_id"`
-	OnCallerData map[string]interface{} `firestore:"oncaller_data,omitempty"`
-	Timestamp    time.Time              `firestore:"timestamp"`
-	Type         string                 `firestore:"type"`
+	IncidentID string    `firestore:"incident_id"`
+	Oncaller   string    `firestore:"oncaller,omitempty"`
+	Timestamp  time.Time `firestore:"timestamp"`
+	Type       string    `firestore:"type"`
 }
 
 type MetricLog struct {

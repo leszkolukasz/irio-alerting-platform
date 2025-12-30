@@ -4,12 +4,19 @@ This is the Logger microservice that stores logs regarding metrics (ServiceUp/Do
 
 ## Running
 
-API requires a running database and configured topics and subsriptions on GCP. One can use terraform files to set these things up:
+Logger requires a running database and configured topics and subsriptions on GCP. One can use terraform files to set these things up:
 
 - topics and subsriptions are defined in `pubsub.tf`
 - firestore is set up in `main.tf`
 
 Note: `terraform destroy` seems to not destroy these resources. Destroy them manually to avoid costs.
+
+or use local emulators:
+
+```
+docker compose up -d pubsub
+firestore emulators:start # this will also provide web UI at http://localhost:4000/firestore/logger-db/data
+```
 
 To run the Logger service locally, use the following command:
 

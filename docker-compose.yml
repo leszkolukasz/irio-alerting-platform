@@ -58,6 +58,12 @@ services:
     networks:
       - internal_network
 
+  pubsub:
+    image: gcr.io/google.com/cloudsdktool/cloud-sdk:latest
+    command: gcloud beta emulators pubsub start --project=${PROJECT_ID} --host-port=0.0.0.0:${PUBSUB_EMULATOR_PORT}
+    ports:
+      - "${PUBSUB_EMULATOR_PORT}:${PUBSUB_EMULATOR_PORT}"
+
 volumes:
   pgdata:
   redis_data:

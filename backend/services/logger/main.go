@@ -42,6 +42,8 @@ func main() {
 		"logger-service-down":        "ServiceDown",
 	}
 
+	Init(psClient, subscriptions)
+
 	var wg sync.WaitGroup
 
 	for subID, eventType := range subscriptions {
@@ -66,4 +68,45 @@ func main() {
 	log.Println("Logger service started and listening to Pub/Sub subscriptions...")
 
 	wg.Wait()
+}
+
+func Init(psClient *pubsub.Client, subscriptions map[string]string) {
+	if config.GetConfig().Env != config.DEV {
+		return
+	}
+
+	for subID, topicID := range subscriptions {
+		topic := psClient.Topic(topicID)
+		exists, err := topic.Exists(context.Background())
+
+		if err != nil {
+			log.Fatalf("Failed to check if topic %s exists: %v", topicID, err)
+		}
+
+		if !exists {
+			topic, err = psClient.CreateTopic(context.Background(), topicID)
+			if err != nil {
+				log.Fatalf("Failed to create topic %s: %v", topicID, err)
+			}
+
+			log.Printf("Created topic: %s", topicID)
+		}
+
+		sub := psClient.Subscription(subID)
+		exists, err = sub.Exists(context.Background())
+		if err != nil {
+			log.Fatalf("Failed to check if subscription %s exists: %v", subID, err)
+		}
+
+		if !exists {
+			sub, err = psClient.CreateSubscription(context.Background(), subID, pubsub.SubscriptionConfig{
+				Topic: topic,
+			})
+			if err != nil {
+				log.Fatalf("Failed to create subscription %s: %v", subID, err)
+			}
+
+			log.Printf("Created subscription: %s", subID)
+		}
+	}
 }

@@ -1,4 +1,4 @@
-package dto
+package pubsub
 
 type PubSubPayload struct {
 	IncidentID   string                 `json:"incident_id,omitempty"`

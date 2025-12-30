@@ -6,8 +6,8 @@ import (
 	"log"
 	"time"
 
+	"alerting-platform/common/pubsub"
 	db "logger/db"
-	dto "logger/dto"
 )
 
 type Repository interface {
@@ -17,11 +17,11 @@ type Repository interface {
 
 func HandleMessage(
 	ctx context.Context,
-	msg PubSubMessage,
+	msg pubsub.PubSubMessage,
 	eventType string,
 	repo Repository,
 ) {
-	var payload dto.PubSubPayload
+	var payload pubsub.PubSubPayload
 
 	if err := json.Unmarshal(msg.GetData(), &payload); err != nil {
 		log.Printf("[CRITICAL] Error unmarshalling JSON from %s: %v. Dropping message.", eventType, err)

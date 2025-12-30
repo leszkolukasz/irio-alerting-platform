@@ -1,7 +1,8 @@
 go 1.25.4
 
-use ./common
-
-use ./services/api
-
-use ./services/logger
+use (
+	./common
+	./services/api
+	./services/incident-manager
+	./services/logger
+)

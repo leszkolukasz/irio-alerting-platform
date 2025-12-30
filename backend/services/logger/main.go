@@ -8,6 +8,7 @@ import (
 	"cloud.google.com/go/pubsub"
 
 	"alerting-platform/common/config"
+	pubsub_common "alerting-platform/common/pubsub"
 	db "logger/db"
 )
 
@@ -42,71 +43,15 @@ func main() {
 		"logger-service-down":        "ServiceDown",
 	}
 
-	Init(psClient, subscriptions)
+	pubsub_common.Init(psClient, subscriptions)
 
 	var wg sync.WaitGroup
+	pubsub_common.SetupSubscriptions(ctx, psClient, subscriptions, &wg,
+		func(ctx context.Context, msg pubsub_common.PubSubMessage, eventType string) {
+			HandleMessage(ctx, msg, eventType, repo)
+		})
 
-	for subID, eventType := range subscriptions {
-		wg.Add(1)
-
-		go func(sid, eType string) {
-			defer wg.Done()
-
-			sub := psClient.Subscription(sid)
-			sub.ReceiveSettings.MaxOutstandingMessages = 10
-
-			err := sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
-				adapter := &PubSubMessageAdapter{msg: msg}
-				HandleMessage(ctx, adapter, eType, repo)
-			})
-
-			if err != nil {
-				log.Printf("Receive error on %s: %v", sid, err)
-			}
-		}(subID, eventType)
-	}
 	log.Println("Logger service started and listening to Pub/Sub subscriptions...")
 
 	wg.Wait()
-}
-
-func Init(psClient *pubsub.Client, subscriptions map[string]string) {
-	if config.GetConfig().Env != config.DEV {
-		return
-	}
-
-	for subID, topicID := range subscriptions {
-		topic := psClient.Topic(topicID)
-		exists, err := topic.Exists(context.Background())
-
-		if err != nil {
-			log.Fatalf("Failed to check if topic %s exists: %v", topicID, err)
-		}
-
-		if !exists {
-			topic, err = psClient.CreateTopic(context.Background(), topicID)
-			if err != nil {
-				log.Fatalf("Failed to create topic %s: %v", topicID, err)
-			}
-
-			log.Printf("Created topic: %s", topicID)
-		}
-
-		sub := psClient.Subscription(subID)
-		exists, err = sub.Exists(context.Background())
-		if err != nil {
-			log.Fatalf("Failed to check if subscription %s exists: %v", subID, err)
-		}
-
-		if !exists {
-			sub, err = psClient.CreateSubscription(context.Background(), subID, pubsub.SubscriptionConfig{
-				Topic: topic,
-			})
-			if err != nil {
-				log.Fatalf("Failed to create subscription %s: %v", subID, err)
-			}
-
-			log.Printf("Created subscription: %s", subID)
-		}
-	}
 }

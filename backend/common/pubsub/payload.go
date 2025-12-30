@@ -9,11 +9,19 @@ import (
 	"cloud.google.com/go/pubsub"
 )
 
+type PubSubPayloadData struct {
+	AllowedResponseTime int      `json:"allowed_response_time,omitempty"`
+	HealthCheckInterval int      `json:"health_check_interval,omitempty"`
+	AlertWindow         int      `json:"alert_window,omitempty"`
+	Oncallers           []string `json:"oncallers,omitempty"`
+}
+
 type PubSubPayload struct {
-	IncidentID string `json:"incident_id,omitempty"`
-	ServiceID  uint64 `json:"service_id,omitempty"`
-	OnCaller   string `json:"oncaller,omitempty"`
-	Timestamp  string `json:"timestamp,omitempty"`
+	IncidentID string            `json:"incident_id,omitempty"`
+	ServiceID  uint64            `json:"service_id,omitempty"`
+	OnCaller   string            `json:"oncaller,omitempty"`
+	Timestamp  string            `json:"timestamp,omitempty"`
+	Data       PubSubPayloadData `json:"data,omitempty"`
 }
 
 func ExtractPayload(msg PubSubMessage) (*PubSubPayload, *time.Time, error) {
@@ -30,13 +38,13 @@ func ExtractPayload(msg PubSubMessage) (*PubSubPayload, *time.Time, error) {
 		}
 	}
 	if eventTime.IsZero() {
-		eventTime = time.Now()
+		eventTime = time.Now().UTC()
 	}
 
 	return &payload, &eventTime, nil
 }
 
-func SendMessage(ctx context.Context, psClient *pubsub.Client, topicID string, payload PubSubPayload) error {
+func SendMessage(ctx context.Context, psClient *pubsub.Client, topicID string, payload PubSubPayload, orderingKey string) error {
 	topic := psClient.Topic(topicID)
 
 	data, err := json.Marshal(payload)
@@ -45,7 +53,8 @@ func SendMessage(ctx context.Context, psClient *pubsub.Client, topicID string, p
 	}
 
 	result := topic.Publish(ctx, &pubsub.Message{
-		Data: data,
+		Data:        data,
+		OrderingKey: orderingKey,
 	})
 
 	_, err = result.Get(ctx)

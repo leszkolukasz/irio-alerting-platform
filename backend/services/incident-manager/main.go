@@ -13,18 +13,13 @@ import (
 	"cloud.google.com/go/pubsub"
 	"github.com/redis/go-redis/v9"
 
-	"alerting-platform/common/config"
 	pubsub_common "alerting-platform/common/pubsub"
 )
 
 func main() {
 	ctx := context.Background()
-	cfg := config.GetConfig()
 
-	psClient, err := pubsub.NewClient(ctx, cfg.ProjectID)
-	if err != nil {
-		log.Fatalf("[FATAL] Failed to init Pub/Sub: %v", err)
-	}
+	psClient := pubsub_common.Init(ctx)
 	defer psClient.Close()
 
 	managerState := internal.NewManagerState(ctx, psClient)
@@ -42,12 +37,16 @@ func main() {
 
 func StartPubSubListener(ctx context.Context, wg *sync.WaitGroup, psClient *pubsub.Client, managerState *internal.ManagerState) {
 	subscriptions := map[string]string{
-		"incident-manager-service-up":   pubsub_common.ServiceUpTopic,
-		"incident-manager-service-down": pubsub_common.ServiceDownTopic,
+		"incident-manager-service-up":            pubsub_common.ServiceUpTopic,
+		"incident-manager-service-down":          pubsub_common.ServiceDownTopic,
+		"incident-manager-service-created":       pubsub_common.ServiceCreatedTopic,
+		"incident-manager-service-removed":       pubsub_common.ServiceRemovedTopic,
+		"incident-manager-service-modified":      pubsub_common.ServiceModifiedTopic,
+		"incident-manager-oncaller-acknowledged": pubsub_common.OncallerAcknowledgedTopic,
 	}
 
-	pubsub_common.Init(psClient, subscriptions)
-	pubsub_common.SetupSubscriptions(ctx, psClient, subscriptions, wg, func(ctx context.Context, msg pubsub_common.PubSubMessage, eventType string) {
+	pubsub_common.CreateSubscriptionsAndTopics(psClient, subscriptions)
+	pubsub_common.SetupSubscriptionListeners(ctx, psClient, subscriptions, wg, func(ctx context.Context, msg pubsub_common.PubSubMessage, eventType string) {
 		managerState.HandleMessage(ctx, msg, eventType)
 	})
 
@@ -60,7 +59,7 @@ func StartIncidentManager(ctx context.Context, managerState *internal.ManagerSta
 	go func() {
 		for {
 			oncallerDeadlineSetKey := redis_keys.GetOncallerDeadlineSetKey()
-			now := time.Now().Unix()
+			now := time.Now().UTC().Unix()
 
 			expiredDeadlines, err := redisClient.ZRangeByScore(ctx, oncallerDeadlineSetKey, &redis.ZRangeBy{
 				Min: "-inf",

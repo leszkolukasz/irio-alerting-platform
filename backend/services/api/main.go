@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 	"alerting-platform/api/middleware"
 	"alerting-platform/api/rpc"
 	"alerting-platform/common/config"
+	pubsub_common "alerting-platform/common/pubsub"
 	incident_rpc "alerting-platform/common/rpc"
 )
 
@@ -26,6 +28,9 @@ func main() {
 
 	dbConn := db.GetDBConnection()
 	dbConn.AutoMigrate(&db.User{}, &db.MonitoredService{})
+
+	psClient := pubsub_common.Init(context.Background())
+	defer psClient.Close()
 
 	var wg sync.WaitGroup
 

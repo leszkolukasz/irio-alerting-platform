@@ -1,6 +1,12 @@
 package controllers
 
 import (
+	"alerting-platform/api/pubsub"
+	"alerting-platform/api/redis"
+	db_common "alerting-platform/common/db"
+	"log"
+	"strconv"
+
 	"alerting-platform/api/db"
 	"alerting-platform/api/dto"
 	"alerting-platform/api/middleware"
@@ -53,6 +59,13 @@ func CreateMonitoredService(c *gin.Context) {
 		return
 	}
 
+	go func() {
+		err := pubsub.SendServiceCreatedMessage(ctx, service)
+		if err != nil {
+			log.Printf("[ERROR] Failed to send service created message: %v", err)
+		}
+	}()
+
 	c.JSON(201, gin.H{"message": "Monitored service created successfully", "serviceID": service.ID})
 }
 
@@ -76,8 +89,15 @@ func GetMyMonitoredServices(c *gin.Context) {
 
 	dtos := make([]dto.MonitoredServiceDTO, 0, len(services))
 
+	redisClient := db_common.GetRedisClient()
+
 	for _, s := range services {
-		dto := utils.MapServiceToDTO(s)
+		status, err := redisClient.Get(ctx, redis.GetServiceStatusKey(uint64(s.ID))).Result()
+		if err != nil {
+			status = "UNKNOWN"
+		}
+
+		dto := utils.MapServiceToDTO(s, status)
 		dtos = append(dtos, dto)
 	}
 
@@ -104,7 +124,14 @@ func GetMonitoredServiceByID(c *gin.Context) {
 		return
 	}
 
-	dto := utils.MapServiceToDTO(service)
+	redisClient := db_common.GetRedisClient()
+	status, err := redisClient.Get(ctx, redis.GetServiceStatusKey(uint64(service.ID))).Result()
+
+	if err != nil {
+		status = "UNKNOWN"
+	}
+
+	dto := utils.MapServiceToDTO(service, status)
 
 	c.JSON(200, dto)
 }
@@ -146,6 +173,13 @@ func UpdateMonitoredService(c *gin.Context) {
 
 	conn.Save(&service)
 
+	go func() {
+		err := pubsub.SendServiceUpdatedMessage(ctx, service)
+		if err != nil {
+			log.Printf("[ERROR] Failed to send service updated message: %v", err)
+		}
+	}()
+
 	c.JSON(200, gin.H{"message": "Monitored service updated successfully"})
 }
 
@@ -173,6 +207,19 @@ func DeleteMonitoredService(c *gin.Context) {
 		c.JSON(404, gin.H{"message": "Monitored service not found"})
 		return
 	}
+
+	go func() {
+		id, err := strconv.ParseUint(serviceID, 10, 64)
+		if err != nil {
+			log.Printf("[ERROR] Invalid service ID %s: %v", serviceID, err)
+			return
+		}
+
+		err = pubsub.SendServiceDeletedMessage(ctx, id)
+		if err != nil {
+			log.Printf("[ERROR] Failed to send service deleted message: %v", err)
+		}
+	}()
 
 	c.JSON(200, gin.H{"message": "Monitored service deleted successfully"})
 }

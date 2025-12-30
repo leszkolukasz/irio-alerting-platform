@@ -27,6 +27,14 @@ func (managerState *ManagerState) HandleMessage(ctx context.Context, msg pubsub_
 		err = managerState.HandleServiceUp(ctx, *payload, *eventTime)
 	case pubsub_common.ServiceDownTopic:
 		err = managerState.HandleServiceDown(ctx, *payload, *eventTime)
+	case pubsub_common.ServiceCreatedTopic:
+		err = managerState.HandleServiceCreated(ctx, *payload, *eventTime)
+	case pubsub_common.ServiceModifiedTopic:
+		err = managerState.HandleServiceModified(ctx, *payload, *eventTime)
+	case pubsub_common.ServiceRemovedTopic:
+		err = managerState.HandleServiceRemoved(ctx, *payload, *eventTime)
+	case pubsub_common.OncallerAcknowledgedTopic:
+		err = managerState.HandleOncallerAcknowledged(ctx, *payload, *eventTime)
 	default:
 		log.Printf("[WARNING] Unknown event type: %s", eventType)
 	}
@@ -47,13 +55,12 @@ func (managerState *ManagerState) HandleServiceUp(ctx context.Context, payload p
 
 	log.Printf("[DEBUG] Service %d is UP", payload.ServiceID)
 
-	err := redisClient.Set(ctx, serviceStatusKey, "UP", 0).Err()
+	pipe := redisClient.TxPipeline()
 
-	if err != nil {
-		return err
-	}
+	pipe.Set(ctx, serviceStatusKey, "UP", 0).Err()
+	pipe.Del(ctx, downSinceKey).Err()
 
-	err = redisClient.Del(ctx, downSinceKey).Err()
+	_, err := pipe.Exec(ctx)
 
 	return err
 }
@@ -84,9 +91,11 @@ func (managerState *ManagerState) HandleServiceDown(ctx context.Context, payload
 		return err
 	}
 
-	currentTime := time.Now().Unix()
+	currentTime := time.Now().UTC().Unix()
 
+	managerState.mu.Lock()
 	service, exists := managerState.Services[payload.ServiceID]
+	managerState.mu.Unlock()
 
 	if !exists {
 		log.Printf("[WARNING] Service %d not found in configuration", payload.ServiceID)
@@ -107,6 +116,81 @@ func (managerState *ManagerState) HandleServiceDown(ctx context.Context, payload
 	return err
 }
 
+func (managerState *ManagerState) HandleServiceCreated(ctx context.Context, payload pubsub_common.PubSubPayload, eventTime time.Time) error {
+	log.Printf("[DEBUG] Service %d created", payload.ServiceID)
+
+	managerState.mu.Lock()
+	defer managerState.mu.Unlock()
+
+	service := ServiceInfo{
+		ID:                  payload.ServiceID,
+		AlertWindow:         payload.Data.AlertWindow,
+		AllowedResponseTime: payload.Data.AllowedResponseTime,
+		Oncallers:           payload.Data.Oncallers,
+	}
+
+	managerState.Services[service.ID] = service
+	return nil
+}
+
+func (managerState *ManagerState) HandleServiceModified(ctx context.Context, payload pubsub_common.PubSubPayload, eventTime time.Time) error {
+	log.Printf("[DEBUG] Service %d modified", payload.ServiceID)
+
+	managerState.mu.Lock()
+	defer managerState.mu.Unlock()
+
+	service, exists := managerState.Services[payload.ServiceID]
+
+	if !exists {
+		log.Printf("[WARNING] Service %d not found in configuration", payload.ServiceID)
+		return nil
+	}
+
+	service.AlertWindow = payload.Data.AlertWindow
+	service.AllowedResponseTime = payload.Data.AllowedResponseTime
+	service.Oncallers = payload.Data.Oncallers
+
+	managerState.Services[service.ID] = service
+	return nil
+}
+
+func (managerState *ManagerState) HandleServiceRemoved(ctx context.Context, payload pubsub_common.PubSubPayload, eventTime time.Time) error {
+	log.Printf("[DEBUG] Service %d removed", payload.ServiceID)
+
+	managerState.mu.Lock()
+	delete(managerState.Services, payload.ServiceID)
+	managerState.mu.Unlock()
+
+	redisClient := db.GetRedisClient()
+	incidentKey := redis_keys.GetIncidentKey(payload.ServiceID)
+
+	exists := redisClient.Exists(ctx, incidentKey).Val()
+
+	if exists != 0 {
+		err := redisClient.Del(ctx, incidentKey).Err()
+		if err != nil {
+			log.Printf("[ERROR] Failed to delete incident for removed service %d: %v", payload.ServiceID, err)
+			return err
+		}
+		log.Printf("[DEBUG] Deleted ongoing incident for removed service %d", payload.ServiceID)
+	}
+
+	oncallerDeadlineSetKey := redis_keys.GetOncallerDeadlineSetKey()
+	err := redisClient.ZRem(ctx, oncallerDeadlineSetKey, payload.ServiceID).Err()
+	if err != nil {
+		log.Printf("[ERROR] Failed to remove service %d from oncaller deadline set: %v", payload.ServiceID, err)
+		return err
+	}
+
+	return nil
+}
+
+func (managerState *ManagerState) HandleOncallerAcknowledged(ctx context.Context, payload pubsub_common.PubSubPayload, eventTime time.Time) error {
+	log.Printf("[DEBUG] Oncaller %s acknowledged incident for service %d", payload.OnCaller, payload.ServiceID)
+
+	return managerState.handleIncidentResolved(ctx, payload.ServiceID, payload.OnCaller)
+}
+
 func (managerState *ManagerState) HandleNewIncident(ctx context.Context, serviceID uint64, incidentStartTime time.Time) error {
 	redisClient := db.GetRedisClient()
 	incidentKey := redis_keys.GetIncidentKey(serviceID)
@@ -115,7 +199,9 @@ func (managerState *ManagerState) HandleNewIncident(ctx context.Context, service
 
 	log.Printf("[DEBUG] Starting incident %s for service %d", incidentID, serviceID)
 
+	managerState.mu.Lock()
 	service, exists := managerState.Services[serviceID]
+	managerState.mu.Unlock()
 
 	if !exists {
 		log.Printf("[WARNING] Service %d not found in configuration", serviceID)
@@ -131,6 +217,7 @@ func (managerState *ManagerState) HandleNewIncident(ctx context.Context, service
 		IncidentID:          incidentID,
 		ServiceID:           serviceID,
 		State:               IncidentStateWaitingForFirstAck,
+		IncidentStartTime:   incidentStartTime.Unix(),
 		AllowedResponseTime: service.AllowedResponseTime,
 		FirstOncaller:       service.Oncallers[0],
 		SecondOncaller:      secondOncaller,
@@ -167,6 +254,20 @@ func (managerState *ManagerState) HandleNewIncident(ctx context.Context, service
 		}
 	}()
 
+	go func() {
+		err := managerState.SendNotifyOncallerMessage(
+			ctx,
+			incidentInfo.IncidentID,
+			incidentInfo.ServiceID,
+			incidentInfo.FirstOncaller,
+			incidentStartTime,
+		)
+
+		if err != nil {
+			log.Printf("[ERROR] Failed to send notify oncaller message for service %d: %v", serviceID, err)
+		}
+	}()
+
 	return nil
 }
 
@@ -192,10 +293,16 @@ func (managerState *ManagerState) HandleExpiredDeadline(ctx context.Context, ser
 		return err
 	}
 
+	incidentStartTime, err := strconv.ParseInt(incident["incident_start_time"], 10, 64)
+	if err != nil {
+		return err
+	}
+
 	incidentInfo := IncidentInfo{
 		IncidentID:          incident["incident_id"],
 		ServiceID:           serviceID,
 		State:               incident["state"],
+		IncidentStartTime:   incidentStartTime,
 		AllowedResponseTime: allowedResponseTime,
 		FirstOncaller:       incident["first_oncaller"],
 		SecondOncaller:      incident["second_oncaller"],
@@ -220,11 +327,25 @@ func (managerState *ManagerState) HandleExpiredDeadline(ctx context.Context, ser
 			incidentInfo.IncidentID,
 			serviceID,
 			requestedOncaller,
-			time.Now(),
+			time.Now().UTC(),
 		)
 
 		if err != nil {
 			log.Printf("[ERROR] Failed to send acknowledge timeout message for service %d: %v", serviceID, err)
+		}
+	}()
+
+	go func() {
+		err := managerState.SendNotifyOncallerMessage(
+			ctx,
+			incidentInfo.IncidentID,
+			serviceID,
+			requestedOncaller,
+			time.Unix(incidentInfo.IncidentStartTime, 0),
+		)
+
+		if err != nil {
+			log.Printf("[ERROR] Failed to send notify oncaller message for service %d: %v", serviceID, err)
 		}
 	}()
 
@@ -243,7 +364,7 @@ func (managerState *ManagerState) HandleExpiredDeadline(ctx context.Context, ser
 
 		log.Printf("[DEBUG] Second oncaller configured. Notifying %s", incidentInfo.SecondOncaller)
 
-		oncallerResponseDeadline := time.Now().Add(time.Duration(incidentInfo.AllowedResponseTime) * time.Minute).Unix()
+		oncallerResponseDeadline := time.Now().UTC().Add(time.Duration(incidentInfo.AllowedResponseTime) * time.Minute).Unix()
 
 		err = redisClient.ZAdd(ctx, oncallerDeadlineSetKey, redis.Z{
 			Score:  float64(oncallerResponseDeadline),
@@ -275,13 +396,12 @@ func (managerState *ManagerState) handleIncidentUnresolved(ctx context.Context, 
 		return err
 	}
 
-	err = redisClient.Del(ctx, incidentKey).Err()
+	pipe := redisClient.TxPipeline()
 
-	if err != nil {
-		return err
-	}
+	pipe.Del(ctx, incidentKey).Err()
+	pipe.Del(ctx, downSinceKey).Err()
 
-	err = redisClient.Del(ctx, downSinceKey).Err()
+	_, err = pipe.Exec(ctx)
 
 	if err != nil {
 		return err
@@ -292,7 +412,7 @@ func (managerState *ManagerState) handleIncidentUnresolved(ctx context.Context, 
 			ctx,
 			incidentID,
 			serviceID,
-			time.Now(),
+			time.Now().UTC(),
 		)
 
 		if err != nil {
@@ -303,7 +423,6 @@ func (managerState *ManagerState) handleIncidentUnresolved(ctx context.Context, 
 	return nil
 }
 
-// nolint:unused
 func (managerState *ManagerState) handleIncidentResolved(ctx context.Context, serviceID uint64, oncaller string) error {
 	redisClient := db.GetRedisClient()
 	incidentKey := redis_keys.GetIncidentKey(serviceID)
@@ -311,19 +430,18 @@ func (managerState *ManagerState) handleIncidentResolved(ctx context.Context, se
 
 	incidentID, err := redisClient.HGet(ctx, incidentKey, "incident_id").Result()
 
-	log.Printf("[DEBUG] Incident %s for service %d was resolved in time", incidentID, serviceID)
+	log.Printf("[DEBUG] Incident %s for service %d was resolved in time by %s", incidentID, serviceID, oncaller)
 
 	if err != nil {
 		return err
 	}
 
-	err = redisClient.Del(ctx, incidentKey).Err()
+	pipe := redisClient.TxPipeline()
 
-	if err != nil {
-		return err
-	}
+	pipe.Del(ctx, incidentKey).Err()
+	pipe.Del(ctx, downSinceKey).Err()
 
-	err = redisClient.Del(ctx, downSinceKey).Err()
+	_, err = pipe.Exec(ctx)
 
 	if err != nil {
 		return err
@@ -335,7 +453,7 @@ func (managerState *ManagerState) handleIncidentResolved(ctx context.Context, se
 			incidentID,
 			serviceID,
 			oncaller,
-			time.Now(),
+			time.Now().UTC(),
 		)
 
 		if err != nil {

@@ -9,7 +9,26 @@ import (
 	"cloud.google.com/go/pubsub"
 )
 
-func Init(psClient *pubsub.Client, subscriptions map[string]string) {
+var (
+	psClient *pubsub.Client
+)
+
+func Init(ctx context.Context) *pubsub.Client {
+	cfg := config.GetConfig()
+	psClient, err := pubsub.NewClient(ctx, cfg.ProjectID)
+
+	if err != nil {
+		log.Fatalf("[FATAL] Failed to init Pub/Sub: %v", err)
+	}
+
+	return psClient
+}
+
+func GetClient() *pubsub.Client {
+	return psClient
+}
+
+func CreateSubscriptionsAndTopics(psClient *pubsub.Client, subscriptions map[string]string) {
 	if config.GetConfig().Env != config.DEV {
 		return
 	}
@@ -50,7 +69,7 @@ func Init(psClient *pubsub.Client, subscriptions map[string]string) {
 	}
 }
 
-func SetupSubscriptions(ctx context.Context, psClient *pubsub.Client, subscriptions map[string]string, wg *sync.WaitGroup,
+func SetupSubscriptionListeners(ctx context.Context, psClient *pubsub.Client, subscriptions map[string]string, wg *sync.WaitGroup,
 	handler_func func(context.Context, PubSubMessage, string)) {
 	for subID, eventType := range subscriptions {
 		wg.Add(1)

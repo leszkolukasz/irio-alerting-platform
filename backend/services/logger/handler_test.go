@@ -50,7 +50,7 @@ func TestHandleMessage_Incident_Ack(t *testing.T) {
 
 	msg := &fakeMessage{
 		data:        []byte(`{"incident_id":"inc-1"}`),
-		publishTime: time.Now(),
+		publishTime: time.Now().UTC(),
 	}
 
 	HandleMessage(context.Background(), msg, "IncidentStart", repo)
@@ -69,7 +69,7 @@ func TestHandleMessage_DB_NackOnError(t *testing.T) {
 
 	msg := &fakeMessage{
 		data:        []byte(`{"service_id":"svc-1"}`),
-		publishTime: time.Now(),
+		publishTime: time.Now().UTC(),
 	}
 
 	HandleMessage(context.Background(), msg, "ServiceUp", repo)
@@ -84,7 +84,7 @@ func TestHandleMessage_InvalidJSON_Ack(t *testing.T) {
 
 	msg := &fakeMessage{
 		data:        []byte(`{invalid-json}`),
-		publishTime: time.Now(),
+		publishTime: time.Now().UTC(),
 	}
 
 	HandleMessage(context.Background(), msg, "IncidentStart", repo)
@@ -105,7 +105,7 @@ func TestHandleMessage_UsesPayloadTimestamp(t *testing.T) {
 			"incident_id": "inc-2",
 			"timestamp": "` + ts + `"
 		}`),
-		publishTime: time.Now(),
+		publishTime: time.Now().UTC(),
 	}
 
 	HandleMessage(context.Background(), msg, "IncidentStart", repo)
@@ -122,11 +122,11 @@ func TestHandleMessage_UsesNowIfZero(t *testing.T) {
 		publishTime: time.Time{},
 	}
 
-	before := time.Now()
+	before := time.Now().UTC()
 
 	HandleMessage(context.Background(), msg, "IncidentStart", repo)
 
-	after := time.Now()
+	after := time.Now().UTC()
 
 	assert.True(t, repo.saveLogCalled, "SaveLog should be called")
 	assert.True(t, msg.acked, "Message should be ACKed")

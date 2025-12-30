@@ -23,9 +23,10 @@ const (
 )
 
 type IncidentInfo struct {
-	IncidentID string `redis:"incident_id"`
-	ServiceID  uint64 `redis:"service_id"`
-	State      string `redis:"state"`
+	IncidentID        string `redis:"incident_id"`
+	ServiceID         uint64 `redis:"service_id"`
+	State             string `redis:"state"`
+	IncidentStartTime int64  `redis:"incident_start_time"`
 
 	// Copied in case service info is changed through API
 	AllowedResponseTime int    `redis:"allowed_response_time"`

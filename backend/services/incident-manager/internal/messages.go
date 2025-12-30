@@ -16,7 +16,7 @@ func (managerState *ManagerState) SendIncidentStartMessage(ctx context.Context, 
 	payload.ServiceID = serviceID
 	payload.Timestamp = timestamp.Format(time.RFC3339)
 
-	return pubsub_common.SendMessage(ctx, managerState.psClient, pubsub_common.IncidentStartTopic, payload)
+	return pubsub_common.SendMessage(ctx, managerState.psClient, pubsub_common.IncidentStartTopic, payload, incidentID)
 }
 
 func (managerState *ManagerState) SendAcknowledgeTimeoutMessage(ctx context.Context, incidentID string, serviceID uint64, oncaller string, timestamp time.Time) error {
@@ -29,7 +29,20 @@ func (managerState *ManagerState) SendAcknowledgeTimeoutMessage(ctx context.Cont
 	payload.OnCaller = oncaller
 	payload.Timestamp = timestamp.Format(time.RFC3339)
 
-	return pubsub_common.SendMessage(ctx, managerState.psClient, pubsub_common.IncidentAcknowledgeTimeoutTopic, payload)
+	return pubsub_common.SendMessage(ctx, managerState.psClient, pubsub_common.IncidentAcknowledgeTimeoutTopic, payload, incidentID)
+}
+
+func (managerState *ManagerState) SendNotifyOncallerMessage(ctx context.Context, incidentID string, serviceID uint64, oncaller string, timestamp time.Time) error {
+	var payload pubsub_common.PubSubPayload
+
+	log.Printf("[DEBUG] Sending NotifyOncaller message")
+
+	payload.IncidentID = incidentID
+	payload.ServiceID = serviceID
+	payload.OnCaller = oncaller
+	payload.Timestamp = timestamp.Format(time.RFC3339) // Incident start time
+
+	return pubsub_common.SendMessage(ctx, managerState.psClient, pubsub_common.NotifyOncallerTopic, payload, incidentID)
 }
 
 func (managerState *ManagerState) SendIncidentUnresolvedMessage(ctx context.Context, incidentID string, serviceID uint64, timestamp time.Time) error {
@@ -41,7 +54,7 @@ func (managerState *ManagerState) SendIncidentUnresolvedMessage(ctx context.Cont
 	payload.ServiceID = serviceID
 	payload.Timestamp = timestamp.Format(time.RFC3339)
 
-	return pubsub_common.SendMessage(ctx, managerState.psClient, pubsub_common.IncidentUnresolvedTopic, payload)
+	return pubsub_common.SendMessage(ctx, managerState.psClient, pubsub_common.IncidentUnresolvedTopic, payload, incidentID)
 }
 
 func (managerState *ManagerState) SendIncidentResolvedMessage(ctx context.Context, incidentID string, serviceID uint64, oncaller string, timestamp time.Time) error {
@@ -54,5 +67,5 @@ func (managerState *ManagerState) SendIncidentResolvedMessage(ctx context.Contex
 	payload.OnCaller = oncaller
 	payload.Timestamp = timestamp.Format(time.RFC3339)
 
-	return pubsub_common.SendMessage(ctx, managerState.psClient, pubsub_common.IncidentResolvedTopic, payload)
+	return pubsub_common.SendMessage(ctx, managerState.psClient, pubsub_common.IncidentResolvedTopic, payload, incidentID)
 }

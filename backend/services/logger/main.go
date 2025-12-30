@@ -5,8 +5,6 @@ import (
 	"log"
 	"sync"
 
-	"cloud.google.com/go/pubsub"
-
 	"alerting-platform/common/config"
 	pubsub_common "alerting-platform/common/pubsub"
 	db "logger/db"
@@ -24,10 +22,7 @@ func main() {
 	defer repo.Close()
 
 	// Pub/Sub
-	psClient, err := pubsub.NewClient(ctx, cfg.ProjectID)
-	if err != nil {
-		log.Fatalf("Failed to init Pub/Sub: %v", err)
-	}
+	psClient := pubsub_common.Init(ctx)
 	defer psClient.Close()
 
 	subscriptions := map[string]string{
@@ -39,10 +34,10 @@ func main() {
 		"logger-service-down":        pubsub_common.ServiceDownTopic,
 	}
 
-	pubsub_common.Init(psClient, subscriptions)
+	pubsub_common.CreateSubscriptionsAndTopics(psClient, subscriptions)
 
 	var wg sync.WaitGroup
-	pubsub_common.SetupSubscriptions(ctx, psClient, subscriptions, &wg,
+	pubsub_common.SetupSubscriptionListeners(ctx, psClient, subscriptions, &wg,
 		func(ctx context.Context, msg pubsub_common.PubSubMessage, eventType string) {
 			HandleMessage(ctx, msg, eventType, repo)
 		})

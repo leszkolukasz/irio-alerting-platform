@@ -7,12 +7,28 @@ import (
 	"time"
 
 	db_util "alerting-platform/common/db"
+	"alerting-platform/common/db/firestore"
+
+	"alerting-platform/api/pubsub"
+	pubsub_common "alerting-platform/common/pubsub"
 
 	jwt "github.com/appleboy/gin-jwt/v3"
 	"github.com/gin-gonic/gin"
 )
 
+type Controller struct {
+	PubSubService pubsub.PubSubServiceI
+	Repository    RepositoryI
+	LogRepository firestore.LogRepositoryI
+}
+
 func RegisterRoutes(r *gin.Engine, authMiddleware *jwt.GinJWTMiddleware) {
+	controller := &Controller{
+		PubSubService: pubsub.NewPubSubService(pubsub_common.GetClient()),
+		Repository:    NewRepository(db.GetDBConnection()),
+		LogRepository: firestore.GetLogRepository(context.Background()),
+	}
+
 	r.NoRoute(NoRouteHandler())
 
 	r.GET("/health", HealthCheckHandler)
@@ -21,7 +37,7 @@ func RegisterRoutes(r *gin.Engine, authMiddleware *jwt.GinJWTMiddleware) {
 
 	v1.POST("/login", authMiddleware.LoginHandler)
 	v1.POST("/refresh", authMiddleware.RefreshHandler)
-	v1.POST("/users", RegisterUser)
+	v1.POST("/users", controller.RegisterUser)
 
 	authenticated := v1.Group("/", authMiddleware.MiddlewareFunc())
 	{
@@ -29,12 +45,12 @@ func RegisterRoutes(r *gin.Engine, authMiddleware *jwt.GinJWTMiddleware) {
 
 		services := authenticated.Group("/services")
 		{
-			services.POST("/", CreateMonitoredService)
-			services.GET("/me", GetMyMonitoredServices)
-			services.GET("/:id", GetMonitoredServiceByID)
-			services.PUT("/:id", UpdateMonitoredService)
-			services.DELETE("/:id", DeleteMonitoredService)
-			services.GET("/:id/incidents", GetServiceIncidents)
+			services.POST("/", controller.CreateMonitoredService)
+			services.GET("/me", controller.GetMyMonitoredServices)
+			services.GET("/:id", controller.GetMonitoredServiceByID)
+			services.PUT("/:id", controller.UpdateMonitoredService)
+			services.DELETE("/:id", controller.DeleteMonitoredService)
+			services.GET("/:id/incidents", controller.GetServiceIncidents)
 		}
 	}
 }

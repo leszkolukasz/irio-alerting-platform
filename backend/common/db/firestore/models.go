@@ -1,10 +1,17 @@
 package firestore
 
 import (
+	"context"
 	"time"
 
 	"cloud.google.com/go/firestore"
 )
+
+type LogRepositoryI interface {
+	SaveLog(context.Context, IncidentLog) error
+	SaveMetric(context.Context, MetricLog) error
+	GetIncidentsByService(context.Context, uint) ([]IncidentLog, error)
+}
 
 type LogRepository struct {
 	client *firestore.Client

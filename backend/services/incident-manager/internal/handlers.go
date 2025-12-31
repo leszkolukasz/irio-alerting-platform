@@ -48,6 +48,8 @@ func (managerState *ManagerState) HandleMessage(ctx context.Context, msg pubsub_
 }
 
 func (managerState *ManagerState) HandleServiceUp(ctx context.Context, payload pubsub_common.PubSubPayload, eventTime time.Time) error {
+	lock := managerState.LockService(payload.ServiceID) // Will this slow down processing?
+	defer lock.Unlock()
 
 	redisClient := db.GetRedisClient()
 	serviceStatusKey := redis_keys.GetServiceStatusKey(payload.ServiceID)
@@ -66,6 +68,9 @@ func (managerState *ManagerState) HandleServiceUp(ctx context.Context, payload p
 }
 
 func (managerState *ManagerState) HandleServiceDown(ctx context.Context, payload pubsub_common.PubSubPayload, eventTime time.Time) error {
+	lock := managerState.LockService(payload.ServiceID)
+	defer lock.Unlock()
+
 	redisClient := db.GetRedisClient()
 	serviceStatusKey := redis_keys.GetServiceStatusKey(payload.ServiceID)
 	downSinceKey := redis_keys.GetDownSinceKey(payload.ServiceID)
@@ -155,6 +160,9 @@ func (managerState *ManagerState) HandleServiceModified(ctx context.Context, pay
 }
 
 func (managerState *ManagerState) HandleServiceRemoved(ctx context.Context, payload pubsub_common.PubSubPayload, eventTime time.Time) error {
+	lock := managerState.LockService(payload.ServiceID)
+	defer lock.Unlock()
+
 	log.Printf("[DEBUG] Service %d removed", payload.ServiceID)
 
 	managerState.mu.Lock()
@@ -188,9 +196,13 @@ func (managerState *ManagerState) HandleServiceRemoved(ctx context.Context, payl
 func (managerState *ManagerState) HandleOncallerAcknowledged(ctx context.Context, payload pubsub_common.PubSubPayload, eventTime time.Time) error {
 	log.Printf("[DEBUG] Oncaller %s acknowledged incident for service %d", payload.OnCaller, payload.ServiceID)
 
+	lock := managerState.LockService(payload.ServiceID)
+	defer lock.Unlock()
+
 	return managerState.handleIncidentResolved(ctx, payload.ServiceID, payload.OnCaller)
 }
 
+// Should be locked before calling
 func (managerState *ManagerState) HandleNewIncident(ctx context.Context, serviceID uint64, incidentStartTime time.Time) error {
 	redisClient := db.GetRedisClient()
 	incidentKey := redis_keys.GetIncidentKey(serviceID)
@@ -272,6 +284,9 @@ func (managerState *ManagerState) HandleNewIncident(ctx context.Context, service
 }
 
 func (managerState *ManagerState) HandleExpiredDeadline(ctx context.Context, serviceID uint64) error {
+	lock := managerState.LockService(serviceID)
+	defer lock.Unlock()
+
 	redisClient := db.GetRedisClient()
 	incidentKey := redis_keys.GetIncidentKey(serviceID)
 	oncallerDeadlineSetKey := redis_keys.GetOncallerDeadlineSetKey()
@@ -383,6 +398,7 @@ func (managerState *ManagerState) HandleExpiredDeadline(ctx context.Context, ser
 
 }
 
+// Should be locked before calling
 func (managerState *ManagerState) handleIncidentUnresolved(ctx context.Context, serviceID uint64) error {
 	redisClient := db.GetRedisClient()
 	incidentKey := redis_keys.GetIncidentKey(serviceID)
@@ -423,6 +439,7 @@ func (managerState *ManagerState) handleIncidentUnresolved(ctx context.Context, 
 	return nil
 }
 
+// Should be locked before calling
 func (managerState *ManagerState) handleIncidentResolved(ctx context.Context, serviceID uint64, oncaller string) error {
 	redisClient := db.GetRedisClient()
 	incidentKey := redis_keys.GetIncidentKey(serviceID)

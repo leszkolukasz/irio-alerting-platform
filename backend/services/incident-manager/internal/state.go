@@ -35,14 +35,14 @@ type IncidentInfo struct {
 }
 
 type ManagerState struct {
-	mu       sync.Mutex
+	mu       sync.Mutex // locks read/writes access to locks/Services
 	psClient *pubsub.Client
+	locks    map[uint64]*sync.Mutex // lock per service
 	Services map[uint64]ServiceInfo
 }
 
 func NewManagerState(ctx context.Context, psClient *pubsub.Client) *ManagerState {
 	state := &ManagerState{
-		mu:       sync.Mutex{},
 		psClient: psClient,
 		Services: make(map[uint64]ServiceInfo),
 	}
@@ -61,4 +61,20 @@ func NewManagerState(ctx context.Context, psClient *pubsub.Client) *ManagerState
 	}
 
 	return state
+}
+
+func (managerState *ManagerState) LockService(serviceID uint64) *sync.Mutex {
+	managerState.mu.Lock()
+
+	lock, exists := managerState.locks[serviceID]
+	if !exists {
+		lock = &sync.Mutex{}
+		managerState.locks[serviceID] = lock
+	}
+
+	managerState.mu.Unlock()
+
+	lock.Lock()
+
+	return lock
 }

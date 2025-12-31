@@ -118,8 +118,15 @@ resource "google_firestore_database" "firestore_db" {
 }
 
 # Without this you cannot connect to Cloud SQL
-resource "google_project_service" "sql_admin" {
+resource "google_project_service" "sql_admin_api" {
   service = "sqladmin.googleapis.com"
+
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "firestore_api" {
+  project = var.project_id
+  service = "firestore.googleapis.com"
 
   disable_on_destroy = false
 }

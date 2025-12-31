@@ -14,6 +14,10 @@ var (
 )
 
 func GetRedisClient() *redis.Client {
+	if redisClient != nil {
+		return redisClient
+	}
+
 	once.Do(func() {
 		cfg := config.GetConfig()
 		redisClient = redis.NewClient(&redis.Options{
@@ -24,4 +28,14 @@ func GetRedisClient() *redis.Client {
 	})
 
 	return redisClient
+}
+
+func MockRedis(addr string) {
+	if redisClient != nil {
+		redisClient.Close()
+	}
+
+	redisClient = redis.NewClient(&redis.Options{
+		Addr: addr,
+	})
 }

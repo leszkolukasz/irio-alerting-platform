@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterUser(c *gin.Context) {
+func (controller *Controller) RegisterUser(c *gin.Context) {
 	var registerInput dto.RegisterRequest
 
 	if err := c.ShouldBind(&registerInput); err != nil {
@@ -27,10 +27,9 @@ func RegisterUser(c *gin.Context) {
 		PasswordHash: passwordHash,
 	}
 
-	conn := db.GetDBConnection()
-	result := conn.Create(&user)
-	if result.Error != nil {
-		c.JSON(500, gin.H{"message": "Failed to create user", "error": result.Error.Error()})
+	err = controller.Repository.CreateUser(c.Request.Context(), &user)
+	if err != nil {
+		c.JSON(500, gin.H{"message": "Failed to create user", "error": err.Error()})
 		return
 	}
 

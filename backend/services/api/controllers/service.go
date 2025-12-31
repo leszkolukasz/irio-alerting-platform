@@ -1,12 +1,9 @@
 package controllers
 
 import (
-	"alerting-platform/api/pubsub"
 	"alerting-platform/api/redis"
 	db_common "alerting-platform/common/db"
 	"alerting-platform/common/db/firestore"
-	"context"
-	"log"
 	"strconv"
 
 	"alerting-platform/api/db"
@@ -15,10 +12,9 @@ import (
 	"alerting-platform/api/utils"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
-func CreateMonitoredService(c *gin.Context) {
+func (controller *Controller) CreateMonitoredService(c *gin.Context) {
 	var serviceInput dto.MonitoredServiceRequest
 
 	if err := c.ShouldBind(&serviceInput); err != nil {
@@ -35,9 +31,8 @@ func CreateMonitoredService(c *gin.Context) {
 	jwtUser := userIdentity.(*middleware.JWTUser)
 
 	ctx := c.Request.Context()
-	conn := db.GetDBConnection()
 
-	_, err := gorm.G[db.MonitoredService](conn).Where("name = ?", serviceInput.Name).First(ctx)
+	_, err := controller.Repository.GetServiceByName(ctx, serviceInput.Name)
 	if err == nil {
 		c.JSON(400, gin.H{"message": "Service name already taken"})
 		return
@@ -55,23 +50,22 @@ func CreateMonitoredService(c *gin.Context) {
 		SecondOncallerEmail: serviceInput.SecondOncallerEmail,
 	}
 
-	err = gorm.G[db.MonitoredService](conn).Create(ctx, &service)
+	err = controller.Repository.CreateService(ctx, &service)
 	if err != nil {
 		c.JSON(500, gin.H{"message": "Failed to create monitored service", "error": err.Error()})
 		return
 	}
 
-	go func() {
-		err := pubsub.SendServiceCreatedMessage(context.Background(), service)
-		if err != nil {
-			log.Printf("[ERROR] Failed to send service created message: %v", err)
-		}
-	}()
+	err = controller.PubSubService.SendServiceCreatedMessage(ctx, service)
+	if err != nil {
+		c.JSON(500, gin.H{"message": "Failed to send service created message", "error": err.Error()})
+		return
+	}
 
 	c.JSON(201, gin.H{"message": "Monitored service created successfully", "serviceID": service.ID})
 }
 
-func GetMyMonitoredServices(c *gin.Context) {
+func (controller *Controller) GetMyMonitoredServices(c *gin.Context) {
 	userIdentity, exists := c.Get(middleware.IdentityKey)
 	if !exists {
 		c.JSON(500, gin.H{"message": "Failed to get user from context"})
@@ -81,9 +75,8 @@ func GetMyMonitoredServices(c *gin.Context) {
 	jwtUser := userIdentity.(*middleware.JWTUser)
 
 	ctx := c.Request.Context()
-	conn := db.GetDBConnection()
 
-	services, err := gorm.G[db.MonitoredService](conn).Where("user_id = ?", jwtUser.ID).Find(ctx)
+	services, err := controller.Repository.GetServicesForUser(ctx, uint64(jwtUser.ID))
 	if err != nil {
 		c.JSON(500, gin.H{"message": "Failed to retrieve monitored services", "error": err.Error()})
 		return
@@ -106,7 +99,7 @@ func GetMyMonitoredServices(c *gin.Context) {
 	c.JSON(200, dtos)
 }
 
-func GetMonitoredServiceByID(c *gin.Context) {
+func (controller *Controller) GetMonitoredServiceByID(c *gin.Context) {
 	serviceID := c.Param("id")
 
 	userIdentity, exists := c.Get(middleware.IdentityKey)
@@ -116,11 +109,15 @@ func GetMonitoredServiceByID(c *gin.Context) {
 	}
 
 	jwtUser := userIdentity.(*middleware.JWTUser)
-
 	ctx := c.Request.Context()
-	conn := db.GetDBConnection()
 
-	service, err := gorm.G[db.MonitoredService](conn).Where("id = ? AND user_id = ?", serviceID, jwtUser.ID).First(ctx)
+	serviceIDInt, err := strconv.ParseUint(serviceID, 10, 64)
+	if err != nil {
+		c.JSON(400, gin.H{"message": "Invalid service ID", "error": err.Error()})
+		return
+	}
+
+	service, err := controller.Repository.GetServiceByIDAndUserID(ctx, serviceIDInt, uint64(jwtUser.ID))
 	if err != nil {
 		c.JSON(404, gin.H{"message": "Monitored service not found", "error": err.Error()})
 		return
@@ -133,12 +130,12 @@ func GetMonitoredServiceByID(c *gin.Context) {
 		status = "UNKNOWN"
 	}
 
-	dto := utils.MapServiceToDTO(service, status)
+	dto := utils.MapServiceToDTO(*service, status)
 
 	c.JSON(200, dto)
 }
 
-func UpdateMonitoredService(c *gin.Context) {
+func (controller *Controller) UpdateMonitoredService(c *gin.Context) {
 	serviceID := c.Param("id")
 
 	var serviceInput dto.MonitoredServiceRequest
@@ -154,11 +151,15 @@ func UpdateMonitoredService(c *gin.Context) {
 	}
 
 	jwtUser := userIdentity.(*middleware.JWTUser)
-
 	ctx := c.Request.Context()
-	conn := db.GetDBConnection()
 
-	service, err := gorm.G[db.MonitoredService](conn).Where("id = ? AND user_id = ?", serviceID, jwtUser.ID).First(ctx)
+	serviceIDInt, err := strconv.ParseUint(serviceID, 10, 64)
+	if err != nil {
+		c.JSON(400, gin.H{"message": "Invalid service ID", "error": err.Error()})
+		return
+	}
+
+	service, err := controller.Repository.GetServiceByIDAndUserID(ctx, serviceIDInt, uint64(jwtUser.ID))
 	if err != nil {
 		c.JSON(404, gin.H{"message": "Monitored service not found", "error": err.Error()})
 		return
@@ -173,19 +174,18 @@ func UpdateMonitoredService(c *gin.Context) {
 	service.FirstOncallerEmail = serviceInput.FirstOncallerEmail
 	service.SecondOncallerEmail = serviceInput.SecondOncallerEmail
 
-	conn.Save(&service)
+	controller.Repository.SaveService(ctx, service)
 
-	go func() {
-		err := pubsub.SendServiceUpdatedMessage(context.Background(), service)
-		if err != nil {
-			log.Printf("[ERROR] Failed to send service updated message: %v", err)
-		}
-	}()
+	err = controller.PubSubService.SendServiceUpdatedMessage(ctx, *service)
+	if err != nil {
+		c.JSON(500, gin.H{"message": "Failed to send service updated message", "error": err.Error()})
+		return
+	}
 
 	c.JSON(200, gin.H{"message": "Monitored service updated successfully"})
 }
 
-func DeleteMonitoredService(c *gin.Context) {
+func (controller *Controller) DeleteMonitoredService(c *gin.Context) {
 	serviceID := c.Param("id")
 
 	userIdentity, exists := c.Get(middleware.IdentityKey)
@@ -195,11 +195,15 @@ func DeleteMonitoredService(c *gin.Context) {
 	}
 
 	jwtUser := userIdentity.(*middleware.JWTUser)
-
 	ctx := c.Request.Context()
-	conn := db.GetDBConnection()
 
-	rowsAffected, err := gorm.G[db.MonitoredService](conn).Where("id = ? AND user_id = ?", serviceID, jwtUser.ID).Delete(ctx)
+	serviceIDInt, err := strconv.ParseUint(serviceID, 10, 64)
+	if err != nil {
+		c.JSON(400, gin.H{"message": "Invalid service ID", "error": err.Error()})
+		return
+	}
+
+	rowsAffected, err := controller.Repository.DeleteServiceForUser(ctx, serviceIDInt, uint64(jwtUser.ID))
 	if err != nil {
 		c.JSON(500, gin.H{"message": "Failed to delete monitored service", "error": err.Error()})
 		return
@@ -210,23 +214,16 @@ func DeleteMonitoredService(c *gin.Context) {
 		return
 	}
 
-	go func() {
-		id, err := strconv.ParseUint(serviceID, 10, 64)
-		if err != nil {
-			log.Printf("[ERROR] Invalid service ID %s: %v", serviceID, err)
-			return
-		}
-
-		err = pubsub.SendServiceDeletedMessage(context.Background(), id)
-		if err != nil {
-			log.Printf("[ERROR] Failed to send service deleted message: %v", err)
-		}
-	}()
+	err = controller.PubSubService.SendServiceDeletedMessage(ctx, serviceIDInt)
+	if err != nil {
+		c.JSON(500, gin.H{"message": "Failed to send service deleted message", "error": err.Error()})
+		return
+	}
 
 	c.JSON(200, gin.H{"message": "Monitored service deleted successfully"})
 }
 
-func GetServiceIncidents(c *gin.Context) {
+func (controller *Controller) GetServiceIncidents(c *gin.Context) {
 	serviceID := c.Param("id")
 
 	userIdentity, exists := c.Get(middleware.IdentityKey)
@@ -236,18 +233,26 @@ func GetServiceIncidents(c *gin.Context) {
 	}
 
 	jwtUser := userIdentity.(*middleware.JWTUser)
-
 	ctx := c.Request.Context()
-	conn := db.GetDBConnection()
 
-	service, err := gorm.G[db.MonitoredService](conn).Where("id = ? AND user_id = ?", serviceID, jwtUser.ID).First(ctx)
+	serviceIDInt, err := strconv.ParseUint(serviceID, 10, 64)
+	if err != nil {
+		c.JSON(400, gin.H{"message": "Invalid service ID", "error": err.Error()})
+		return
+	}
+
+	service, err := controller.Repository.GetServiceByIDAndUserID(ctx, serviceIDInt, uint64(jwtUser.ID))
 	if err != nil {
 		c.JSON(404, gin.H{"message": "Monitored service not found", "error": err.Error()})
 		return
 	}
 
-	repo := firestore.GetLogRepository(ctx)
-	incidents, err := repo.GetIncidentsByService(ctx, service.ID)
+	incidents, err := controller.LogRepository.GetIncidentsByService(ctx, service.ID)
+
+	if err != nil {
+		c.JSON(500, gin.H{"message": "Failed to retrieve incidents", "error": err.Error()})
+		return
+	}
 
 	incidentMap := make(map[string][]firestore.IncidentLog)
 	for _, incident := range incidents {

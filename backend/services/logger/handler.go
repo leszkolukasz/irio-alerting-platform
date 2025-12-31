@@ -9,11 +9,6 @@ import (
 	"alerting-platform/common/pubsub"
 )
 
-type Repository interface {
-	SaveLog(context.Context, firestore.IncidentLog) error
-	SaveMetric(context.Context, firestore.MetricLog) error
-}
-
 var EventTypeToStatus = map[string]string{
 	pubsub.ServiceUpTopic:                  "UP",
 	pubsub.ServiceDownTopic:                "DOWN",
@@ -28,7 +23,7 @@ func HandleMessage(
 	ctx context.Context,
 	msg pubsub.PubSubMessage,
 	eventType string,
-	repo Repository,
+	repo firestore.LogRepositoryI,
 ) {
 	payload, eventTime, err := pubsub.ExtractPayload(msg)
 	if err != nil {

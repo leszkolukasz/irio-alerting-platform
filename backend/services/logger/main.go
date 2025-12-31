@@ -5,11 +5,14 @@ import (
 	"log"
 	"sync"
 
+	"alerting-platform/common/config"
 	firestore "alerting-platform/common/db/firestore"
 	pubsub_common "alerting-platform/common/pubsub"
 )
 
 func main() {
+	config.Intro("Logger")
+
 	ctx := context.Background()
 
 	// Firestore

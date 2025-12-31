@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: alerting-platform-logger
-          image: "{{ .Values.gcloud.registryURL }}/alerting-platform-logger:latest"
+          image: "{{ .Values.gcloud.registryURL }}/alerting-platform-logger:{{ .Values.env.VERSION }}"
           imagePullPolicy: Always          
           env:
             - name: PROJECT_ID

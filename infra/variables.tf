@@ -18,6 +18,16 @@ variable "region" {
 }
 
 variable "firestore_db" {
-  type        = string
-  default     = "logger-db"
+  type    = string
+  default = "logger-db"
+}
+
+variable "app_version" {
+  type    = string
+  default = "v1.0.0"
+}
+
+variable "build_time" {
+  type    = string
+  default = "2026-01-01T00:00:00Z"
 }

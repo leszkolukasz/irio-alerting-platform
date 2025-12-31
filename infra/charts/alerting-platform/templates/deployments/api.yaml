@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: alerting-platform-api
-          image: "{{ .Values.gcloud.registryURL }}/alerting-platform-api:latest"
+          image: "{{ .Values.gcloud.registryURL }}/alerting-platform-api:{{ .Values.env.VERSION }}"
           imagePullPolicy: Always
           ports:
             - containerPort: {{ .Values.env.REST_API_PORT }}

@@ -21,6 +21,14 @@ resource "helm_release" "alerting-platform" {
 
   set = [
     {
+      name  = "env.VERSION"
+      value = var.app_version
+    },
+    {
+      name  = "env.BUILD_TIME"
+      value = var.build_time
+    },
+    {
       name  = "env.POSTGRES_USER"
       value = google_sql_user.db_user.name
     },

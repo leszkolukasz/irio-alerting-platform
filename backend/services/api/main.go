@@ -23,6 +23,8 @@ import (
 )
 
 func main() {
+	config.Intro("API")
+
 	if config.GetConfig().Env == config.PROD {
 		gin.SetMode(gin.ReleaseMode)
 	}

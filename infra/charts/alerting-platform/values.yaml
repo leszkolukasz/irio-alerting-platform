@@ -8,6 +8,8 @@ gcloud:
 
 env:
   ENV: "prod"
+  VERSION: null
+  BUILD_TIME: null
   PROJECT_ID: null
   API_HOST: "alerting-platform-api"
   REST_API_PORT: 8080

@@ -3,6 +3,7 @@ package main
 import (
 	"alerting-plafform/incident-manager/internal"
 	redis_keys "alerting-plafform/incident-manager/redis"
+	"alerting-platform/common/config"
 	"alerting-platform/common/db"
 	"context"
 	"log"
@@ -17,6 +18,8 @@ import (
 )
 
 func main() {
+	config.Intro("Incident Manager")
+
 	ctx := context.Background()
 
 	psClient := pubsub_common.Init(ctx)

@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: alerting-platform-incident-manager
-          image: "{{ .Values.gcloud.registryURL }}/alerting-platform-incident-manager:latest"
+          image: "{{ .Values.gcloud.registryURL }}/alerting-platform-incident-manager:{{ .Values.env.VERSION }}"
           imagePullPolicy: Always          
           env:
             - name: PROJECT_ID

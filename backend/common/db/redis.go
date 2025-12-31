@@ -24,13 +24,14 @@ func GetRedisClient() *redis.Client {
 			Addr:     fmt.Sprintf("%s:%s", cfg.RedisHost, cfg.RedisPort),
 			Password: cfg.RedisPassword,
 			DB:       cfg.RedisDB,
+			Protocol: 2,
 		})
 	})
 
 	return redisClient
 }
 
-func MockRedis(addr string) {
+func MockRedis(addr string) *redis.Client {
 	if redisClient != nil {
 		redisClient.Close()
 	}
@@ -38,4 +39,6 @@ func MockRedis(addr string) {
 	redisClient = redis.NewClient(&redis.Options{
 		Addr: addr,
 	})
+
+	return redisClient
 }

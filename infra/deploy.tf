@@ -37,6 +37,10 @@ resource "helm_release" "alerting-platform" {
       value = google_redis_instance.redis.port
     },
     {
+      name  = "env.PROJECT_ID"
+      value = var.project_id
+    },
+    {
       name  = "gcloud.projectID"
       value = var.project_id
     },

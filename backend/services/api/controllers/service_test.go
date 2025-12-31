@@ -46,7 +46,7 @@ func setupRedis(t *testing.T) *miniredis.Miniredis {
 		t.Fatalf("an error '%s' was not expected when opening a stub redis connection", err)
 	}
 
-	db_common.MockRedis(s.Addr())
+	_ = db_common.MockRedis(s.Addr())
 
 	return s
 }

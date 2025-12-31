@@ -2,6 +2,7 @@ use flake
 
 export ENV="dev" # or prod
 export SECRET="secret"
+export API_HOST="localhost"
 export REST_API_PORT="8080"
 export RPC_PORT="9090"
 export POSTGRES_HOST="localhost"
@@ -20,4 +21,4 @@ export TF_VAR_firestore_db=$FIRESTORE_DB
 export PUBSUB_EMULATOR_PORT="8085"
 export PUBSUB_EMULATOR_HOST="localhost:$PUBSUB_EMULATOR_PORT" 
 export FIRESTORE_EMULATOR_PORT="8086"
-export FIRESTORE_EMULATOR_HOST="localhost:$FIRESTORE_EMULATOR_PORT"
+export FIRESTORE_EMULATOR_HOST="localhost:$FIRESTORE_EMULATOR_PORT

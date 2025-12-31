@@ -13,6 +13,12 @@ type IncidentManagerServiceServer struct {
 	repo db.RepositoryI
 }
 
+func NewIncidentManagerServiceServer(repo db.RepositoryI) *IncidentManagerServiceServer {
+	return &IncidentManagerServiceServer{
+		repo: repo,
+	}
+}
+
 func (s *IncidentManagerServiceServer) GetAllServicesInfo(ctx context.Context, empty *emptypb.Empty) (*rpc.ServicesInfoForIncident, error) {
 	services, err := s.repo.GetAllServices(ctx)
 

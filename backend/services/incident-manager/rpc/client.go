@@ -18,15 +18,8 @@ var (
 
 func GetClient() *grpc.ClientConn {
 	once.Do(func() {
-		var url string
 		cfg := config.GetConfig()
-
-		if cfg.Env == config.PROD {
-			url = "alerting-platform-api:" + strconv.Itoa(cfg.RPCPort)
-		} else {
-			url = "localhost:" + strconv.Itoa(cfg.RPCPort)
-		}
-
+		url := cfg.APIHost + ":" + strconv.Itoa(cfg.RPCPort)
 		conn, err := grpc.NewClient(url, grpc.WithTransportCredentials(insecure.NewCredentials()))
 
 		if err != nil {

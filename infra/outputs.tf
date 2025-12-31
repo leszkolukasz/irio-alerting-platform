@@ -12,3 +12,7 @@ output "bucket_name" {
 output "registry_url" {
   value = google_artifact_registry_repository.docker_registry.registry_uri
 }
+
+output "redis_host" {
+  value = google_redis_instance.redis.host
+}

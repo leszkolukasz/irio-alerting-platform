@@ -16,16 +16,17 @@ import (
 	pubsub_common "alerting-platform/common/pubsub"
 
 	"github.com/alicebob/miniredis/v2"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
-func setupTestState(t *testing.T) (*miniredis.Miniredis, *pubsub_internal.MockPubSubService, *ManagerState) {
+func setupTestState(t *testing.T) (*miniredis.Miniredis, *redis.Client, *pubsub_internal.MockPubSubService, *ManagerState) {
 	s, err := miniredis.Run()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub redis connection", err)
 	}
-	db.MockRedis(s.Addr())
+	rclient := db.MockRedis(s.Addr())
 
 	mockPubSub := new(pubsub_internal.MockPubSubService)
 
@@ -38,7 +39,7 @@ func setupTestState(t *testing.T) (*miniredis.Miniredis, *pubsub_internal.MockPu
 
 	os.Setenv("REDIS_PREFIX", "test-prefix:")
 
-	return s, mockPubSub, state
+	return s, rclient, mockPubSub, state
 }
 
 func TestHandleServiceUp(t *testing.T) {
@@ -47,7 +48,7 @@ func TestHandleServiceUp(t *testing.T) {
 	payload := pubsub_common.PubSubPayload{ServiceID: serviceID}
 
 	t.Run("Success", func(t *testing.T) {
-		s, _, managerState := setupTestState(t)
+		s, _, _, managerState := setupTestState(t)
 		defer s.Close()
 
 		serviceStatusKey := redis_keys.GetServiceStatusKey(serviceID)
@@ -65,7 +66,7 @@ func TestHandleServiceUp(t *testing.T) {
 	})
 
 	t.Run("Error on Redis Exec", func(t *testing.T) {
-		s, _, managerState := setupTestState(t)
+		s, _, _, managerState := setupTestState(t)
 		defer s.Close()
 
 		s.SetError("redis error")
@@ -87,7 +88,7 @@ func TestHandleServiceCreated(t *testing.T) {
 	}
 
 	t.Run("Success", func(t *testing.T) {
-		_, _, managerState := setupTestState(t)
+		_, _, _, managerState := setupTestState(t)
 
 		err := managerState.HandleServiceCreated(ctx, payload, time.Now())
 		assert.NoError(t, err)
@@ -113,7 +114,7 @@ func TestHandleServiceModified(t *testing.T) {
 	}
 
 	t.Run("Success", func(t *testing.T) {
-		_, _, managerState := setupTestState(t)
+		_, _, _, managerState := setupTestState(t)
 		managerState.services[serviceID] = ServiceInfo{
 			ID:                  serviceID,
 			AlertWindow:         300,
@@ -138,7 +139,7 @@ func TestHandleServiceDown(t *testing.T) {
 	payload := pubsub_common.PubSubPayload{ServiceID: serviceID}
 
 	t.Run("Success - First Time Down", func(t *testing.T) {
-		s, _, managerState := setupTestState(t)
+		s, _, _, managerState := setupTestState(t)
 		defer s.Close()
 
 		now := time.Now()
@@ -156,7 +157,7 @@ func TestHandleServiceDown(t *testing.T) {
 	})
 
 	t.Run("Success - Already Down, Create Incident", func(t *testing.T) {
-		s, mockPubSub, managerState := setupTestState(t)
+		s, _, mockPubSub, managerState := setupTestState(t)
 		defer s.Close()
 
 		alertWindow := 5
@@ -181,7 +182,7 @@ func TestHandleServiceDown(t *testing.T) {
 	})
 
 	t.Run("Error on Set Status", func(t *testing.T) {
-		s, _, managerState := setupTestState(t)
+		s, _, _, managerState := setupTestState(t)
 		defer s.Close()
 
 		s.SetError("redis error")
@@ -191,7 +192,7 @@ func TestHandleServiceDown(t *testing.T) {
 	})
 
 	t.Run("Error on Set DownSince", func(t *testing.T) {
-		s, _, managerState := setupTestState(t)
+		s, _, _, managerState := setupTestState(t)
 		defer s.Close()
 
 		serviceStatusKey := redis_keys.GetServiceStatusKey(serviceID)
@@ -213,27 +214,27 @@ func TestHandleServiceRemoved(t *testing.T) {
 	serviceID := uint64(1)
 	payload := pubsub_common.PubSubPayload{ServiceID: serviceID}
 
-	// t.Run("Success", func(t *testing.T) {
-	//     s, _, managerState := setupTestState(t)
-	//     defer s.Close()
+	t.Run("Success", func(t *testing.T) {
+		s, rclient, _, managerState := setupTestState(t)
+		defer s.Close()
 
-	//     managerState.services[serviceID] = ServiceInfo{ID: serviceID}
-	//     s.Set(redis_keys.GetIncidentKey(serviceID), "incident-data")
-	//     s.ZAdd(redis_keys.GetOncallerDeadlineSetKey(), 1, fmt.Sprintf("%d", serviceID))
+		managerState.services[serviceID] = ServiceInfo{ID: serviceID}
+		s.Set(redis_keys.GetIncidentKey(serviceID), "incident-data")
+		s.ZAdd(redis_keys.GetOncallerDeadlineSetKey(), 1, fmt.Sprintf("%d", serviceID))
 
-	//     err := managerState.HandleServiceRemoved(ctx, payload, time.Now())
-	//     assert.NoError(t, err)
+		err := managerState.HandleServiceRemoved(ctx, payload, time.Now())
+		assert.NoError(t, err)
 
-	//     _, exists := managerState.services[serviceID]
-	//     assert.False(t, exists)
-	//     assert.False(t, s.Exists(redis_keys.GetIncidentKey(serviceID)))
-	//     members, err := s.ZRange(redis_keys.GetOncallerDeadlineSetKey(), 0, -1)
-	//     assert.NoError(t, err)
-	//     assert.Empty(t, members)
-	// })
+		_, exists := managerState.services[serviceID]
+		assert.False(t, exists)
+		assert.False(t, s.Exists(redis_keys.GetIncidentKey(serviceID)))
+		members, err := rclient.ZRange(t.Context(), redis_keys.GetOncallerDeadlineSetKey(), 0, -1).Result()
+		assert.NoError(t, err)
+		assert.Empty(t, members)
+	})
 
 	t.Run("Error on Deleting Incident", func(t *testing.T) {
-		s, _, managerState := setupTestState(t)
+		s, _, _, managerState := setupTestState(t)
 		defer s.Close()
 
 		incidentKey := redis_keys.GetIncidentKey(serviceID)
@@ -247,7 +248,7 @@ func TestHandleServiceRemoved(t *testing.T) {
 	})
 
 	t.Run("Error on ZRem", func(t *testing.T) {
-		s, _, managerState := setupTestState(t)
+		s, _, _, managerState := setupTestState(t)
 		defer s.Close()
 
 		oncallerDeadlineSetKey := redis_keys.GetOncallerDeadlineSetKey()
@@ -269,7 +270,7 @@ func TestHandleOncallerAcknowledged(t *testing.T) {
 	}
 
 	t.Run("Success", func(t *testing.T) {
-		s, mockPubSub, managerState := setupTestState(t)
+		s, _, mockPubSub, managerState := setupTestState(t)
 		defer s.Close()
 
 		incidentKey := redis_keys.GetIncidentKey(payload.ServiceID)
@@ -292,7 +293,7 @@ func TestHandleNewIncident(t *testing.T) {
 	incidentStartTime := time.Now().UTC()
 
 	t.Run("Error on HSet", func(t *testing.T) {
-		s, _, managerState := setupTestState(t)
+		s, _, _, managerState := setupTestState(t)
 		defer s.Close()
 
 		managerState.services[serviceID] = ServiceInfo{
@@ -308,7 +309,7 @@ func TestHandleNewIncident(t *testing.T) {
 	})
 
 	t.Run("Error on ZAdd", func(t *testing.T) {
-		s, _, managerState := setupTestState(t)
+		s, _, _, managerState := setupTestState(t)
 		defer s.Close()
 
 		managerState.services[serviceID] = ServiceInfo{
@@ -324,7 +325,7 @@ func TestHandleNewIncident(t *testing.T) {
 	})
 
 	t.Run("Error sending incident start message", func(t *testing.T) {
-		s, mockPubSub, managerState := setupTestState(t)
+		s, _, mockPubSub, managerState := setupTestState(t)
 		defer s.Close()
 
 		managerState.services[serviceID] = ServiceInfo{
@@ -344,7 +345,7 @@ func TestHandleNewIncident(t *testing.T) {
 	})
 
 	t.Run("Error sending notify oncaller message", func(t *testing.T) {
-		s, mockPubSub, managerState := setupTestState(t)
+		s, _, mockPubSub, managerState := setupTestState(t)
 		defer s.Close()
 
 		managerState.services[serviceID] = ServiceInfo{
@@ -369,7 +370,7 @@ func TestHandleExpiredDeadline(t *testing.T) {
 	serviceID := uint64(1)
 
 	t.Run("Success - Escalate to Second Oncaller", func(t *testing.T) {
-		s, mockPubSub, managerState := setupTestState(t)
+		s, _, mockPubSub, managerState := setupTestState(t)
 		defer s.Close()
 
 		incidentKey := redis_keys.GetIncidentKey(serviceID)
@@ -399,7 +400,7 @@ func TestHandleExpiredDeadline(t *testing.T) {
 	})
 
 	t.Run("Success - Unresolved", func(t *testing.T) {
-		s, mockPubSub, managerState := setupTestState(t)
+		s, _, mockPubSub, managerState := setupTestState(t)
 		defer s.Close()
 
 		incidentKey := redis_keys.GetIncidentKey(serviceID)
@@ -424,7 +425,7 @@ func TestHandleExpiredDeadline(t *testing.T) {
 	})
 
 	t.Run("Error on ZRem", func(t *testing.T) {
-		s, _, managerState := setupTestState(t)
+		s, _, _, managerState := setupTestState(t)
 		defer s.Close()
 		s.SetError("redis error")
 		err := managerState.HandleExpiredDeadline(ctx, serviceID)
@@ -433,7 +434,7 @@ func TestHandleExpiredDeadline(t *testing.T) {
 	})
 
 	t.Run("Error on HGetAll", func(t *testing.T) {
-		s, _, managerState := setupTestState(t)
+		s, _, _, managerState := setupTestState(t)
 		defer s.Close()
 		s.SetError("redis error")
 		err := managerState.HandleExpiredDeadline(ctx, serviceID)
@@ -442,7 +443,7 @@ func TestHandleExpiredDeadline(t *testing.T) {
 	})
 
 	t.Run("Error sending acknowledge timeout message", func(t *testing.T) {
-		s, mockPubSub, managerState := setupTestState(t)
+		s, _, mockPubSub, managerState := setupTestState(t)
 		defer s.Close()
 
 		incidentKey := redis_keys.GetIncidentKey(serviceID)
@@ -473,7 +474,7 @@ func TestHandleIncidentUnresolved(t *testing.T) {
 	serviceID := uint64(1)
 
 	t.Run("Success", func(t *testing.T) {
-		s, mockPubSub, managerState := setupTestState(t)
+		s, _, mockPubSub, managerState := setupTestState(t)
 		defer s.Close()
 
 		incidentKey := redis_keys.GetIncidentKey(serviceID)
@@ -493,7 +494,7 @@ func TestHandleIncidentUnresolved(t *testing.T) {
 	})
 
 	t.Run("Error on HGet", func(t *testing.T) {
-		s, _, managerState := setupTestState(t)
+		s, _, _, managerState := setupTestState(t)
 		defer s.Close()
 		s.SetError("redis error")
 		err := managerState.handleIncidentUnresolved(ctx, serviceID)
@@ -502,7 +503,7 @@ func TestHandleIncidentUnresolved(t *testing.T) {
 	})
 
 	t.Run("Error on pipeline exec", func(t *testing.T) {
-		s, _, managerState := setupTestState(t)
+		s, _, _, managerState := setupTestState(t)
 		defer s.Close()
 		incidentKey := redis_keys.GetIncidentKey(serviceID)
 		s.HSet(incidentKey, "incident_id", "test-incident")
@@ -513,7 +514,7 @@ func TestHandleIncidentUnresolved(t *testing.T) {
 	})
 
 	t.Run("Error sending unresolved message", func(t *testing.T) {
-		s, mockPubSub, managerState := setupTestState(t)
+		s, _, mockPubSub, managerState := setupTestState(t)
 		defer s.Close()
 		incidentKey := redis_keys.GetIncidentKey(serviceID)
 		s.HSet(incidentKey, "incident_id", "test-incident")
@@ -534,7 +535,7 @@ func TestHandleIncidentResolved(t *testing.T) {
 	oncaller := "test@oncaller.com"
 
 	t.Run("Success", func(t *testing.T) {
-		s, mockPubSub, managerState := setupTestState(t)
+		s, _, mockPubSub, managerState := setupTestState(t)
 		defer s.Close()
 
 		incidentKey := redis_keys.GetIncidentKey(serviceID)
@@ -554,7 +555,7 @@ func TestHandleIncidentResolved(t *testing.T) {
 	})
 
 	t.Run("Error on HGet", func(t *testing.T) {
-		s, _, managerState := setupTestState(t)
+		s, _, _, managerState := setupTestState(t)
 		defer s.Close()
 		s.SetError("redis error")
 		err := managerState.handleIncidentResolved(ctx, serviceID, oncaller)
@@ -563,7 +564,7 @@ func TestHandleIncidentResolved(t *testing.T) {
 	})
 
 	t.Run("Error on pipeline exec", func(t *testing.T) {
-		s, _, managerState := setupTestState(t)
+		s, _, _, managerState := setupTestState(t)
 		defer s.Close()
 		incidentKey := redis_keys.GetIncidentKey(serviceID)
 		s.HSet(incidentKey, "incident_id", "test-incident")
@@ -574,7 +575,7 @@ func TestHandleIncidentResolved(t *testing.T) {
 	})
 
 	t.Run("Error sending resolved message", func(t *testing.T) {
-		s, mockPubSub, managerState := setupTestState(t)
+		s, _, mockPubSub, managerState := setupTestState(t)
 		defer s.Close()
 		incidentKey := redis_keys.GetIncidentKey(serviceID)
 		s.HSet(incidentKey, "incident_id", "test-incident")

@@ -81,7 +81,9 @@ func runRPCServer() {
 	}
 
 	grpcServer := grpc.NewServer()
-	incident_rpc.RegisterIncidentManagerServiceServer(grpcServer, &rpc.IncidentManagerServiceServer{})
+	incident_rpc.RegisterIncidentManagerServiceServer(grpcServer, rpc.NewIncidentManagerServiceServer(
+		db.NewRepository(db.GetDBConnection()),
+	))
 
 	reflection.Register(grpcServer)
 

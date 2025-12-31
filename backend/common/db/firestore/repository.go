@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"cloud.google.com/go/firestore"
+	"google.golang.org/api/iterator"
 )
 
 var (
@@ -83,6 +84,18 @@ func (r *LogRepository) GetIncidentsByService(ctx context.Context, serviceID uin
 	}
 
 	return incidents, nil
+}
+
+func (r *LogRepository) HealthCheck() bool {
+	ctx := context.Background()
+	iter := r.client.Collections(ctx)
+	_, err := iter.Next()
+
+	if err != nil && err != iterator.Done {
+		return false
+	}
+
+	return true
 }
 
 func (r *LogRepository) Close() error {

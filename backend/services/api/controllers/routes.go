@@ -84,6 +84,19 @@ func HealthCheckHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"status": "OK"})
+	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
+	firestoreRepo := firestore.GetLogRepository(ctx)
+	if !firestoreRepo.HealthCheck() {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "Firestore ping error"})
+		return
+	}
+
+	if !pubsub_common.HealthCheck(pubsub_common.GetClient()) {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "Pub/Sub ping error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "OK"})
 }

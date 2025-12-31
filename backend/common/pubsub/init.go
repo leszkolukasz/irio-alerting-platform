@@ -5,8 +5,10 @@ import (
 	"context"
 	"log"
 	"sync"
+	"time"
 
 	"cloud.google.com/go/pubsub"
+	"google.golang.org/api/iterator"
 )
 
 var (
@@ -110,4 +112,16 @@ func SetupSubscriptionListeners(ctx context.Context, psClient *pubsub.Client, su
 			}
 		}(subID, eventType)
 	}
+}
+
+func HealthCheck(psClient *pubsub.Client) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	topics := psClient.Topics(ctx)
+	_, err := topics.Next()
+	if err != nil && err != iterator.Done {
+		return false
+	}
+	return true
 }

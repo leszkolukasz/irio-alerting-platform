@@ -18,6 +18,7 @@ services:
     environment:
       ENV: ${ENV}
       SECRET: ${SECRET}
+      API_HOST: api
       REST_API_PORT: ${REST_API_PORT}
       RPC_PORT: ${RPC_PORT}
       POSTGRES_HOST: db
@@ -29,12 +30,77 @@ services:
       REDIS_PORT: ${REDIS_PORT}
       REDIS_DB: ${REDIS_DB}
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+      FIRESTORE_DB: ${FIRESTORE_DB}
+      PROJECT_ID: ${PROJECT_ID}
+      PUBSUB_EMULATOR_HOST: pubsub:${PUBSUB_EMULATOR_PORT}
+      FIRESTORE_EMULATOR_HOST: firebase:${FIRESTORE_EMULATOR_PORT}
     ports:
       - "${REST_API_PORT}:${REST_API_PORT}"
       - "${RPC_PORT}:${RPC_PORT}"
     depends_on:
       - db
       - redis
+      - pubsub
+      - firebase
+    networks:
+      - internal_network
+
+  logger:
+    build:
+      context: ./backend
+      dockerfile: ./services/logger/Dockerfile
+    environment:
+      ENV: ${ENV}
+      SECRET: ${SECRET}
+      API_HOST: api
+      REST_API_PORT: ${REST_API_PORT}
+      RPC_PORT: ${RPC_PORT}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      REDIS_HOST: redis
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_DB: ${REDIS_DB}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      FIRESTORE_DB: ${FIRESTORE_DB}
+      PROJECT_ID: ${PROJECT_ID}
+      PUBSUB_EMULATOR_HOST: pubsub:${PUBSUB_EMULATOR_PORT}
+      FIRESTORE_EMULATOR_HOST: firebase:${FIRESTORE_EMULATOR_PORT}
+    depends_on:
+      - pubsub
+      - firebase
+    networks:
+      - internal_network
+
+  incident-manager:
+    build:
+      context: ./backend
+      dockerfile: ./services/incident-manager/Dockerfile
+    environment:
+      ENV: ${ENV}
+      SECRET: ${SECRET}
+      API_HOST: api
+      REST_API_PORT: ${REST_API_PORT}
+      RPC_PORT: ${RPC_PORT}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      REDIS_HOST: redis
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_DB: ${REDIS_DB}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      FIRESTORE_DB: ${FIRESTORE_DB}
+      PROJECT_ID: ${PROJECT_ID}
+      PUBSUB_EMULATOR_HOST: pubsub:${PUBSUB_EMULATOR_PORT}
+      FIRESTORE_EMULATOR_HOST: firebase:${FIRESTORE_EMULATOR_PORT}
+    depends_on:
+      - api
+      - redis
+      - pubsub
     networks:
       - internal_network
 
@@ -63,6 +129,16 @@ services:
     command: gcloud beta emulators pubsub start --project=${PROJECT_ID} --host-port=0.0.0.0:${PUBSUB_EMULATOR_PORT}
     ports:
       - "${PUBSUB_EMULATOR_PORT}:${PUBSUB_EMULATOR_PORT}"
+    networks:
+      - internal_network
+
+  firebase:
+    image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
+    command: gcloud emulators firestore start --project=${PROJECT_ID} --host-port=0.0.0.0:${FIRESTORE_EMULATOR_PORT}
+    ports:
+      - "${FIRESTORE_EMULATOR_PORT}:${FIRESTORE_EMULATOR_PORT}"
+    networks:
+      - internal_network
 
 volumes:
   pgdata:

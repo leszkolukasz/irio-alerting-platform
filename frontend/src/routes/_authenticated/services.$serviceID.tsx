@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  useGetIncidents,
   useGetService,
-  type Incident,
   type MonitoredService,
   type StatusMetrics,
 } from "@/lib/api/service";
@@ -24,6 +24,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { IncidentTimeline } from "@/components/custom/incident-timeline";
+import { useMemo } from "react";
 
 export const Route = createFileRoute("/_authenticated/services/$serviceID")({
   component: RouteComponent,
@@ -32,7 +33,7 @@ export const Route = createFileRoute("/_authenticated/services/$serviceID")({
 function RouteComponent() {
   const serviceID = Route.useParams().serviceID;
 
-  const { data: service, isLoading } = useGetService(serviceID);
+  const { data: service, isLoading } = useGetService(Number(serviceID));
 
   return (
     <div className="flex w-3/4 flex-col gap-6 mt-10">
@@ -55,7 +56,7 @@ function RouteComponent() {
                 <GraphTab />
               </TabsContent>
               <TabsContent value="logs">
-                <LogsTab />
+                <LogsTab serviceID={Number(serviceID)} />
               </TabsContent>
               <TabsContent value="settings">
                 <SettingsTab service={requireNotNullish(service)} />
@@ -97,6 +98,18 @@ const SettingsTab = ({ service }: { service: MonitoredService }) => {
         <div className="flex justify-between">
           <p className="font-bold mb-2">Second Oncaller Email:</p>
           <div>{service.secondOncallerEmail || "N/A"}</div>
+        </div>
+        <div className="flex justify-between">
+          <p className="font-bold mb-2">Alert Window:</p>
+          <div>{service.alertWindow}s</div>
+        </div>
+        <div className="flex justify-between">
+          <p className="font-bold mb-2">Allowed Response Time:</p>
+          <div>{service.allowedResponseTime}m</div>
+        </div>
+        <div className="flex justify-between">
+          <p className="font-bold mb-2">Health Check Interval:</p>
+          <div>{service.healthCheckInterval}s</div>
         </div>
 
         <div className="mt-10 flex justify-between">
@@ -170,88 +183,33 @@ const GraphTab = () => {
   );
 };
 
-const LogsTab = () => {
-  const dummyIncidents: Incident[] = [
-    {
-      id: "incident-1",
-      events: [
-        { timestamp: "2024-10-01T02:15:00Z", type: "START" },
-        {
-          timestamp: "2024-10-01T02:20:00Z",
-          type: "NOTIFIED",
-          oncaller: "john.doe",
-        },
-        {
-          timestamp: "2024-10-01T02:45:00Z",
-          type: "RESOLVED",
-          oncaller: "john.doe",
-        },
-      ],
-    },
-    {
-      id: "incident-2",
-      events: [
-        { timestamp: "2024-10-02T14:30:00Z", type: "START" },
-        {
-          timestamp: "2024-10-02T14:35:00Z",
-          type: "NOTIFIED",
-          oncaller: "jane.smith",
-        },
-        {
-          timestamp: "2024-10-02T15:30:00Z",
-          type: "TIMEOUT",
-          oncaller: "jane.smith",
-        },
-        {
-          timestamp: "2024-10-02T15:35:00Z",
-          type: "NOTIFIED",
-          oncaller: "alice.jones",
-        },
-        {
-          timestamp: "2024-10-02T16:00:00Z",
-          type: "RESOLVED",
-          oncaller: "alice.jones",
-        },
-      ],
-    },
-    {
-      id: "incident-3",
-      events: [
-        { timestamp: "2024-10-02T14:30:00Z", type: "START" },
-        {
-          timestamp: "2024-10-02T14:35:00Z",
-          type: "NOTIFIED",
-          oncaller: "jane.smith",
-        },
-        {
-          timestamp: "2024-10-02T15:30:00Z",
-          type: "TIMEOUT",
-          oncaller: "jane.smith",
-        },
-        {
-          timestamp: "2024-10-02T15:35:00Z",
-          type: "NOTIFIED",
-          oncaller: "alice.jones",
-        },
-        {
-          timestamp: "2024-10-02T16:00:00Z",
-          type: "TIMEOUT",
-          oncaller: "alice.jones",
-        },
-        {
-          timestamp: "2024-10-02T16:05:00Z",
-          type: "UNRESOLVED",
-        },
-      ],
-    },
-  ];
+const LogsTab = ({ serviceID }: { serviceID: number }) => {
+  const { data: incidents = [], isLoading } = useGetIncidents(serviceID);
+
+  const sortedIncidents = useMemo(
+    () =>
+      [...incidents].sort((a, b) => {
+        return b.startTime.getTime() - a.startTime.getTime();
+      }),
+    [incidents]
+  );
+
+  if (isLoading) {
+    return <Spinner className="mx-auto size-8" />;
+  } else if (incidents.length === 0) {
+    return (
+      <div className="text-center">No incidents found for this service.</div>
+    );
+  }
 
   return (
     <Accordion type="single" collapsible className="w-full">
-      {dummyIncidents.map((incident) => (
+      {sortedIncidents.map((incident) => (
         <AccordionItem key={incident.id} value={incident.id}>
           <AccordionTrigger>
-            Incident #{incident.id} | Events: {incident.events.length}
+            Incident on{" "}
+            {incident.startTime.toLocaleString("pl-PL") || "Unknown"} | Events:{" "}
+            {incident.events.length}
           </AccordionTrigger>
           <AccordionContent>
             <IncidentTimeline incident={incident} />

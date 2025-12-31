@@ -4,6 +4,8 @@ import (
 	"alerting-platform/api/pubsub"
 	"alerting-platform/api/redis"
 	db_common "alerting-platform/common/db"
+	"alerting-platform/common/db/firestore"
+	"context"
 	"log"
 	"strconv"
 
@@ -60,7 +62,7 @@ func CreateMonitoredService(c *gin.Context) {
 	}
 
 	go func() {
-		err := pubsub.SendServiceCreatedMessage(ctx, service)
+		err := pubsub.SendServiceCreatedMessage(context.Background(), service)
 		if err != nil {
 			log.Printf("[ERROR] Failed to send service created message: %v", err)
 		}
@@ -174,7 +176,7 @@ func UpdateMonitoredService(c *gin.Context) {
 	conn.Save(&service)
 
 	go func() {
-		err := pubsub.SendServiceUpdatedMessage(ctx, service)
+		err := pubsub.SendServiceUpdatedMessage(context.Background(), service)
 		if err != nil {
 			log.Printf("[ERROR] Failed to send service updated message: %v", err)
 		}
@@ -215,11 +217,48 @@ func DeleteMonitoredService(c *gin.Context) {
 			return
 		}
 
-		err = pubsub.SendServiceDeletedMessage(ctx, id)
+		err = pubsub.SendServiceDeletedMessage(context.Background(), id)
 		if err != nil {
 			log.Printf("[ERROR] Failed to send service deleted message: %v", err)
 		}
 	}()
 
 	c.JSON(200, gin.H{"message": "Monitored service deleted successfully"})
+}
+
+func GetServiceIncidents(c *gin.Context) {
+	serviceID := c.Param("id")
+
+	userIdentity, exists := c.Get(middleware.IdentityKey)
+	if !exists {
+		c.JSON(500, gin.H{"message": "Failed to get user from context"})
+		return
+	}
+
+	jwtUser := userIdentity.(*middleware.JWTUser)
+
+	ctx := c.Request.Context()
+	conn := db.GetDBConnection()
+
+	service, err := gorm.G[db.MonitoredService](conn).Where("id = ? AND user_id = ?", serviceID, jwtUser.ID).First(ctx)
+	if err != nil {
+		c.JSON(404, gin.H{"message": "Monitored service not found", "error": err.Error()})
+		return
+	}
+
+	repo := firestore.GetLogRepository(ctx)
+	incidents, err := repo.GetIncidentsByService(ctx, service.ID)
+
+	incidentMap := make(map[string][]firestore.IncidentLog)
+	for _, incident := range incidents {
+		incidentMap[incident.IncidentID] = append(incidentMap[incident.IncidentID], incident)
+	}
+
+	incidentDTOs := make([]dto.IncidentDTO, 0, len(incidentMap))
+	for _, logs := range incidentMap {
+		incidentDTO := utils.MapIncidentToDTO(logs)
+		incidentDTOs = append(incidentDTOs, incidentDTO)
+	}
+
+	c.JSON(200, incidentDTOs)
 }

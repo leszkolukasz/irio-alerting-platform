@@ -6,6 +6,7 @@ COPY go.work go.work.sum ./
 COPY common/go.mod common/go.sum ./common/
 COPY services/api/go.mod services/api/go.sum ./services/api/
 COPY services/logger/go.mod services/logger/go.sum ./services/logger/
+COPY services/incident-manager/go.mod services/incident-manager/go.sum ./services/incident-manager/
 
 RUN go mod download
 
@@ -20,8 +21,6 @@ FROM alpine:latest
 WORKDIR /root/
 
 COPY --from=builder /app/api .
-
-# TODO: Make sure .env has no sensitive data
 COPY --from=builder /app/services/api/.env .
 
 EXPOSE 8080

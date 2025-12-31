@@ -5,20 +5,15 @@ import (
 	"log"
 	"sync"
 
-	"alerting-platform/common/config"
+	firestore "alerting-platform/common/db/firestore"
 	pubsub_common "alerting-platform/common/pubsub"
-	db "logger/db"
 )
 
 func main() {
 	ctx := context.Background()
-	cfg := config.GetConfig()
 
 	// Firestore
-	repo, err := db.NewLogRepository(ctx, cfg.ProjectID, cfg.FirestoreDB)
-	if err != nil {
-		log.Fatalf("Failed to init Firestore: %v", err)
-	}
+	repo := firestore.GetLogRepository(ctx)
 	defer repo.Close()
 
 	// Pub/Sub
@@ -32,9 +27,10 @@ func main() {
 		"logger-incident-unresolved": pubsub_common.IncidentUnresolvedTopic,
 		"logger-service-up":          pubsub_common.ServiceUpTopic,
 		"logger-service-down":        pubsub_common.ServiceDownTopic,
+		"logger-notify-oncaller":     pubsub_common.NotifyOncallerTopic,
 	}
 
-	pubsub_common.CreateSubscriptionsAndTopics(psClient, subscriptions)
+	pubsub_common.CreateSubscriptionsAndTopics(psClient, subscriptions, []string{})
 
 	var wg sync.WaitGroup
 	pubsub_common.SetupSubscriptionListeners(ctx, psClient, subscriptions, &wg,

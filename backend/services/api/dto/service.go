@@ -23,3 +23,15 @@ type MonitoredServiceDTO struct {
 	SecondOncallerEmail *string `json:"secondOncallerEmail"`
 	Status              string  `json:"status"`
 }
+
+type IncidentDTO struct {
+	ID        string             `json:"id"`
+	ServiceID uint               `json:"serviceID"`
+	Events    []IncidentEventDTO `json:"events"`
+}
+
+type IncidentEventDTO struct {
+	Timestamp string `json:"timestamp"`
+	Type      string `json:"type"`
+	Oncaller  string `json:"oncaller,omitempty"`
+}

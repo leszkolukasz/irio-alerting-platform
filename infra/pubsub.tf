@@ -90,6 +90,13 @@ resource "google_pubsub_subscription" "logger_service_down" {
   enable_message_ordering = true
 }
 
+resource "google_pubsub_subscription" "logger_notify_oncaller" {
+  name  = "logger-notify-oncaller"
+  topic = google_pubsub_topic.notify_oncaller.name
+
+  enable_message_ordering = true
+}
+
 resource "google_pubsub_subscription" "incident_manager_service_up" {
   name  = "incident-manager-service-up"
   topic = google_pubsub_topic.service_up.name

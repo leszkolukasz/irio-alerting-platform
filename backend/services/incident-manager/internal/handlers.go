@@ -243,7 +243,7 @@ func (managerState *ManagerState) HandleNewIncident(ctx context.Context, service
 
 	go func() {
 		err := managerState.SendIncidentStartMessage(
-			ctx,
+			context.Background(),
 			incidentInfo.IncidentID,
 			incidentInfo.ServiceID,
 			incidentStartTime,
@@ -256,11 +256,11 @@ func (managerState *ManagerState) HandleNewIncident(ctx context.Context, service
 
 	go func() {
 		err := managerState.SendNotifyOncallerMessage(
-			ctx,
+			context.Background(),
 			incidentInfo.IncidentID,
 			incidentInfo.ServiceID,
 			incidentInfo.FirstOncaller,
-			incidentStartTime,
+			time.Now().UTC(),
 		)
 
 		if err != nil {
@@ -323,7 +323,7 @@ func (managerState *ManagerState) HandleExpiredDeadline(ctx context.Context, ser
 
 	go func() {
 		err := managerState.SendAcknowledgeTimeoutMessage(
-			ctx,
+			context.Background(),
 			incidentInfo.IncidentID,
 			serviceID,
 			requestedOncaller,
@@ -332,20 +332,6 @@ func (managerState *ManagerState) HandleExpiredDeadline(ctx context.Context, ser
 
 		if err != nil {
 			log.Printf("[ERROR] Failed to send acknowledge timeout message for service %d: %v", serviceID, err)
-		}
-	}()
-
-	go func() {
-		err := managerState.SendNotifyOncallerMessage(
-			ctx,
-			incidentInfo.IncidentID,
-			serviceID,
-			requestedOncaller,
-			time.Unix(incidentInfo.IncidentStartTime, 0),
-		)
-
-		if err != nil {
-			log.Printf("[ERROR] Failed to send notify oncaller message for service %d: %v", serviceID, err)
 		}
 	}()
 
@@ -370,6 +356,20 @@ func (managerState *ManagerState) HandleExpiredDeadline(ctx context.Context, ser
 			Score:  float64(oncallerResponseDeadline),
 			Member: incidentInfo.ServiceID,
 		}).Err()
+
+		go func() {
+			err := managerState.SendNotifyOncallerMessage(
+				context.Background(),
+				incidentInfo.IncidentID,
+				serviceID,
+				incidentInfo.SecondOncaller,
+				time.Now().UTC(),
+			)
+
+			if err != nil {
+				log.Printf("[ERROR] Failed to send notify oncaller message for service %d: %v", serviceID, err)
+			}
+		}()
 
 		return err
 	case IncidentStateWaitingForSecondAck:
@@ -409,7 +409,7 @@ func (managerState *ManagerState) handleIncidentUnresolved(ctx context.Context, 
 
 	go func() {
 		err := managerState.SendIncidentUnresolvedMessage(
-			ctx,
+			context.Background(),
 			incidentID,
 			serviceID,
 			time.Now().UTC(),
@@ -449,7 +449,7 @@ func (managerState *ManagerState) handleIncidentResolved(ctx context.Context, se
 
 	go func() {
 		err := managerState.SendIncidentResolvedMessage(
-			ctx,
+			context.Background(),
 			incidentID,
 			serviceID,
 			oncaller,

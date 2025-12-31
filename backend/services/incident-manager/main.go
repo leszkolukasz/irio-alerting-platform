@@ -45,7 +45,7 @@ func StartPubSubListener(ctx context.Context, wg *sync.WaitGroup, psClient *pubs
 		"incident-manager-oncaller-acknowledged": pubsub_common.OncallerAcknowledgedTopic,
 	}
 
-	pubsub_common.CreateSubscriptionsAndTopics(psClient, subscriptions)
+	pubsub_common.CreateSubscriptionsAndTopics(psClient, subscriptions, []string{pubsub_common.NotifyOncallerTopic})
 	pubsub_common.SetupSubscriptionListeners(ctx, psClient, subscriptions, wg, func(ctx context.Context, msg pubsub_common.PubSubMessage, eventType string) {
 		managerState.HandleMessage(ctx, msg, eventType)
 	})

@@ -55,11 +55,29 @@ const mapIncidentEventToTimelineElement = (
   return {} as TimelineElement;
 };
 
+const incidentEventCompare = (a: IncidentEvent, b: IncidentEvent): number => {
+  const diff =
+    new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+  if (diff !== 0) {
+    return diff;
+  }
+
+  const typeOrder: Record<IncidentEvent["type"], number> = {
+    START: 0,
+    NOTIFIED: 1,
+    TIMEOUT: 2,
+    UNRESOLVED: 3,
+    RESOLVED: 3,
+  };
+
+  return typeOrder[a.type] - typeOrder[b.type];
+};
+
 export const IncidentTimeline = ({ incident }: { incident: Incident }) => {
   const timelineItems: TimelineElement[] = useMemo(() => {
-    return incident.events.map((event, idx) =>
-      mapIncidentEventToTimelineElement(event, idx)
-    );
+    return incident.events
+      .sort(incidentEventCompare)
+      .map((event, idx) => mapIncidentEventToTimelineElement(event, idx));
   }, [incident.events]);
 
   return <TimelineLayout items={timelineItems} size="sm" />;

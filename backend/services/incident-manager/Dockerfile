@@ -11,16 +11,16 @@ COPY services/incident-manager/go.mod services/incident-manager/go.sum ./service
 RUN go mod download
 
 COPY common/ ./common/
-COPY services/logger/ ./services/logger/
+COPY services/incident-manager/ ./services/incident-manager/
 
-WORKDIR /app/services/logger
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/logger .
+WORKDIR /app/services/incident-manager
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/incident-manager .
 
 FROM alpine:latest
 
 WORKDIR /root/
 
-COPY --from=builder /app/logger .
-COPY --from=builder /app/services/logger/.env .
+COPY --from=builder /app/incident-manager .
+COPY --from=builder /app/services/incident-manager/.env .
 
-CMD ["./logger"]
+CMD ["./incident-manager"]

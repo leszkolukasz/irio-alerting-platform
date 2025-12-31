@@ -5,13 +5,23 @@ import (
 	"fmt"
 	"log"
 
+	firestore "alerting-platform/common/db/firestore"
 	"alerting-platform/common/pubsub"
-	db "logger/db"
 )
 
 type Repository interface {
-	SaveLog(context.Context, db.IncidentLog) error
-	SaveMetric(context.Context, db.MetricLog) error
+	SaveLog(context.Context, firestore.IncidentLog) error
+	SaveMetric(context.Context, firestore.MetricLog) error
+}
+
+var EventTypeToStatus = map[string]string{
+	pubsub.ServiceUpTopic:                  "UP",
+	pubsub.ServiceDownTopic:                "DOWN",
+	pubsub.IncidentStartTopic:              "START",
+	pubsub.IncidentResolvedTopic:           "RESOLVED",
+	pubsub.IncidentAcknowledgeTimeoutTopic: "TIMEOUT",
+	pubsub.IncidentUnresolvedTopic:         "UNRESOLVED",
+	pubsub.NotifyOncallerTopic:             "NOTIFIED",
 }
 
 func HandleMessage(
@@ -27,19 +37,24 @@ func HandleMessage(
 		return
 	}
 
-	if eventType == "ServiceUp" || eventType == "ServiceDown" {
-		err = repo.SaveMetric(ctx, db.MetricLog{
+	switch eventType {
+	case pubsub.ServiceUpTopic, pubsub.ServiceDownTopic:
+		err = repo.SaveMetric(ctx, firestore.MetricLog{
 			ServiceID: fmt.Sprintf("%d", payload.ServiceID),
 			Timestamp: *eventTime,
-			Type:      eventType,
+			Type:      EventTypeToStatus[eventType],
 		})
-	} else {
-		err = repo.SaveLog(ctx, db.IncidentLog{
+	case pubsub.IncidentStartTopic, pubsub.IncidentResolvedTopic, pubsub.IncidentAcknowledgeTimeoutTopic,
+		pubsub.IncidentUnresolvedTopic, pubsub.NotifyOncallerTopic:
+		err = repo.SaveLog(ctx, firestore.IncidentLog{
 			IncidentID: payload.IncidentID,
+			ServiceID:  int64(payload.ServiceID),
 			Oncaller:   payload.OnCaller,
 			Timestamp:  *eventTime,
-			Type:       eventType,
+			Type:       EventTypeToStatus[eventType],
 		})
+	default:
+		log.Printf("[WARNING] Unhandled event type: %s", eventType)
 	}
 
 	if err != nil {

@@ -40,7 +40,7 @@ func (managerState *ManagerState) SendNotifyOncallerMessage(ctx context.Context,
 	payload.IncidentID = incidentID
 	payload.ServiceID = serviceID
 	payload.OnCaller = oncaller
-	payload.Timestamp = timestamp.Format(time.RFC3339) // Incident start time
+	payload.Timestamp = timestamp.Format(time.RFC3339)
 
 	return pubsub_common.SendMessage(ctx, managerState.psClient, pubsub_common.NotifyOncallerTopic, payload, incidentID)
 }

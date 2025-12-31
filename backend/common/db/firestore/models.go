@@ -1,4 +1,4 @@
-package db
+package firestore
 
 import (
 	"time"
@@ -12,6 +12,7 @@ type LogRepository struct {
 
 type IncidentLog struct {
 	IncidentID string    `firestore:"incident_id"`
+	ServiceID  int64     `firestore:"monitored_service_id"`
 	Oncaller   string    `firestore:"oncaller,omitempty"`
 	Timestamp  time.Time `firestore:"timestamp"`
 	Type       string    `firestore:"type"`

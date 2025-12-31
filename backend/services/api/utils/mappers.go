@@ -3,6 +3,8 @@ package utils
 import (
 	"alerting-platform/api/db"
 	"alerting-platform/api/dto"
+	"alerting-platform/common/db/firestore"
+	"time"
 )
 
 func MapServiceToDTO(service db.MonitoredService, status string) dto.MonitoredServiceDTO {
@@ -17,5 +19,22 @@ func MapServiceToDTO(service db.MonitoredService, status string) dto.MonitoredSe
 		FirstOncallerEmail:  service.FirstOncallerEmail,
 		SecondOncallerEmail: service.SecondOncallerEmail,
 		Status:              status,
+	}
+}
+
+func MapIncidentToDTO(logs []firestore.IncidentLog) dto.IncidentDTO {
+	events := make([]dto.IncidentEventDTO, len(logs))
+	for i, log := range logs {
+		events[i] = dto.IncidentEventDTO{
+			Timestamp: log.Timestamp.Format(time.RFC3339),
+			Type:      log.Type,
+			Oncaller:  log.Oncaller,
+		}
+	}
+
+	return dto.IncidentDTO{
+		ID:        logs[0].IncidentID,
+		ServiceID: uint(logs[0].ServiceID),
+		Events:    events,
 	}
 }

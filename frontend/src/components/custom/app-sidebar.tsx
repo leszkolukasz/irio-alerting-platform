@@ -24,11 +24,6 @@ const items = [
     url: "/services",
     icon: HeartPulse,
   },
-  {
-    title: "Dummy",
-    url: "/dummy",
-    icon: HeartPulse,
-  },
 ];
 
 export const AppSidebar = () => {

@@ -46,6 +46,7 @@ func ExtractPayload(msg PubSubMessage) (*PubSubPayload, *time.Time, error) {
 
 func SendMessage(ctx context.Context, psClient *pubsub.Client, topicID string, payload PubSubPayload, orderingKey string) error {
 	topic := psClient.Topic(topicID)
+	topic.EnableMessageOrdering = true
 
 	data, err := json.Marshal(payload)
 	if err != nil {

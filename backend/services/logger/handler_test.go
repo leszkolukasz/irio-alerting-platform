@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	db "logger/db"
+	db "alerting-platform/common/db/firestore"
 )
 
 type mockRepo struct {

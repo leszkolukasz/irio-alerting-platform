@@ -17,6 +17,7 @@ import (
 	"alerting-platform/api/middleware"
 	"alerting-platform/api/rpc"
 	"alerting-platform/common/config"
+	"alerting-platform/common/db/firestore"
 	pubsub_common "alerting-platform/common/pubsub"
 	incident_rpc "alerting-platform/common/rpc"
 )
@@ -26,11 +27,16 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
+	ctx := context.Background()
+
 	dbConn := db.GetDBConnection()
 	dbConn.AutoMigrate(&db.User{}, &db.MonitoredService{})
 
-	psClient := pubsub_common.Init(context.Background())
+	psClient := pubsub_common.Init(ctx)
 	defer psClient.Close()
+
+	firestoreRepo := firestore.GetLogRepository(ctx)
+	defer firestoreRepo.Close()
 
 	var wg sync.WaitGroup
 

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { CacheKeys } from "./cache";
 import { toast } from "sonner";
-import { extractErrorMessage } from "../utils";
+import { extractErrorMessage, requireNotNullish } from "../utils";
 
 export type ServiceStatus = "UP" | "DOWN" | "UNKNOWN";
 
@@ -10,7 +10,7 @@ export type Seconds = number & { __secondsBrand: never };
 export type Minutes = number & { __minutesBrand: never };
 
 export type MonitoredService = {
-  id: string;
+  id: number;
   name: string;
   url: string;
   port: number;
@@ -42,6 +42,8 @@ export type StatusMetrics = {
 
 export type Incident = {
   id: string;
+  startTime: Date;
+  serviceID: number;
   events: IncidentEvent[];
 };
 
@@ -69,6 +71,11 @@ export type IncidentEvent =
       type: "TIMEOUT";
       oncaller: string;
     };
+
+const getIncidentStartTime = (incident: Incident) => {
+  const startEvent = incident.events.find((event) => event.type === "START");
+  return startEvent ? new Date(startEvent.timestamp) : null;
+};
 
 export const useGetMyServices = () =>
   useQuery({
@@ -166,3 +173,20 @@ export const useDeleteService = () => {
     },
   });
 };
+
+export const useGetIncidents = (serviceID: MonitoredService["id"]) =>
+  useQuery({
+    queryKey: [CacheKeys.ServiceIncidents, serviceID],
+    queryFn: async () => {
+      return axios
+        .get<Incident[]>(`/services/${serviceID}/incidents`)
+        .then((res) =>
+          res.data.map((incident) => ({
+            ...incident,
+            startTime: requireNotNullish(getIncidentStartTime(incident)),
+            serviceID,
+          }))
+        );
+    },
+    staleTime: 1000 * 60 * 5,
+  });

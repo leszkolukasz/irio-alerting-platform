@@ -19,7 +19,7 @@ import (
 	"alerting-platform/common/config"
 	"alerting-platform/common/db/firestore"
 	pubsub_common "alerting-platform/common/pubsub"
-	incident_rpc "alerting-platform/common/rpc"
+	pb "alerting-platform/common/rpc"
 )
 
 func main() {
@@ -83,10 +83,11 @@ func runRPCServer() {
 	}
 
 	grpcServer := grpc.NewServer()
-	incident_rpc.RegisterIncidentManagerServiceServer(grpcServer, rpc.NewIncidentManagerServiceServer(
+	pb.RegisterIncidentManagerServiceServer(grpcServer, rpc.NewIncidentManagerServiceServer(
 		db.NewRepository(db.GetDBConnection()),
 	))
 
+	pb.RegisterSchedulerServiceServer(grpcServer, &rpc.SchedulerServiceServer{})
 	reflection.Register(grpcServer)
 
 	log.Printf("Starting gRPC server listening on port %d", port)

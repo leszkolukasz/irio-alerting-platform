@@ -20,3 +20,17 @@ message ServiceInfoForIncident {
     int64 allowed_response_time = 3;
     repeated string oncallers = 4;
 }
+
+service SchedulerService {
+  rpc GetAllSchedulerConfigurations (google.protobuf.Empty) returns (SchedulerConfigResponse);
+}
+
+message ServiceInfoForScheduler {
+    uint64 service_id = 1;
+    string url = 2;
+    int64 health_check_interval = 3;
+}
+
+message SchedulerConfigResponse {
+    repeated ServiceInfoForScheduler services = 1;
+}

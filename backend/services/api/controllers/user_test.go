@@ -19,7 +19,7 @@ func TestRegisterUser(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	t.Run("Success 201", func(t *testing.T) {
-		mockRepo := new(MockRepository)
+		mockRepo := new(db.MockRepository)
 		controller := &Controller{
 			Repository: mockRepo,
 		}
@@ -47,7 +47,7 @@ func TestRegisterUser(t *testing.T) {
 	})
 
 	t.Run("Invalid Input 400", func(t *testing.T) {
-		mockRepo := new(MockRepository)
+		mockRepo := new(db.MockRepository)
 		controller := &Controller{
 			Repository: mockRepo,
 		}
@@ -66,7 +66,7 @@ func TestRegisterUser(t *testing.T) {
 	})
 
 	t.Run("Database Error 500", func(t *testing.T) {
-		mockRepo := new(MockRepository)
+		mockRepo := new(db.MockRepository)
 		controller := &Controller{
 			Repository: mockRepo,
 		}

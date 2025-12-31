@@ -5,6 +5,8 @@ import (
 	"context"
 	"sync"
 
+	pubsub_internal "alerting-plafform/incident-manager/pubsub"
+
 	"cloud.google.com/go/pubsub"
 )
 
@@ -35,16 +37,16 @@ type IncidentInfo struct {
 }
 
 type ManagerState struct {
-	mu       sync.Mutex // locks read/writes access to locks/Services
-	psClient *pubsub.Client
-	locks    map[uint64]*sync.Mutex // lock per service
-	Services map[uint64]ServiceInfo
+	mu            sync.Mutex             // locks read/writes access to locks/Services
+	locks         map[uint64]*sync.Mutex // lock per service
+	pubSubService pubsub_internal.PubSubServiceI
+	services      map[uint64]ServiceInfo
 }
 
 func NewManagerState(ctx context.Context, psClient *pubsub.Client) *ManagerState {
 	state := &ManagerState{
-		psClient: psClient,
-		Services: make(map[uint64]ServiceInfo),
+		pubSubService: pubsub_internal.NewPubSubService(psClient),
+		services:      make(map[uint64]ServiceInfo),
 	}
 
 	servicesInfo := rpc.GetAllServicesInfo(ctx)
@@ -57,7 +59,7 @@ func NewManagerState(ctx context.Context, psClient *pubsub.Client) *ManagerState
 			Oncallers:           svc.Oncallers,
 		}
 
-		state.Services[service.ID] = service
+		state.services[service.ID] = service
 	}
 
 	return state

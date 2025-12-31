@@ -99,7 +99,7 @@ func (managerState *ManagerState) HandleServiceDown(ctx context.Context, payload
 	currentTime := time.Now().UTC().Unix()
 
 	managerState.mu.Lock()
-	service, exists := managerState.Services[payload.ServiceID]
+	service, exists := managerState.services[payload.ServiceID]
 	managerState.mu.Unlock()
 
 	if !exists {
@@ -134,7 +134,7 @@ func (managerState *ManagerState) HandleServiceCreated(ctx context.Context, payl
 		Oncallers:           payload.Data.Oncallers,
 	}
 
-	managerState.Services[service.ID] = service
+	managerState.services[service.ID] = service
 	return nil
 }
 
@@ -144,7 +144,7 @@ func (managerState *ManagerState) HandleServiceModified(ctx context.Context, pay
 	managerState.mu.Lock()
 	defer managerState.mu.Unlock()
 
-	service, exists := managerState.Services[payload.ServiceID]
+	service, exists := managerState.services[payload.ServiceID]
 
 	if !exists {
 		log.Printf("[WARNING] Service %d not found in configuration", payload.ServiceID)
@@ -155,7 +155,7 @@ func (managerState *ManagerState) HandleServiceModified(ctx context.Context, pay
 	service.AllowedResponseTime = payload.Data.AllowedResponseTime
 	service.Oncallers = payload.Data.Oncallers
 
-	managerState.Services[service.ID] = service
+	managerState.services[service.ID] = service
 	return nil
 }
 
@@ -166,7 +166,7 @@ func (managerState *ManagerState) HandleServiceRemoved(ctx context.Context, payl
 	log.Printf("[DEBUG] Service %d removed", payload.ServiceID)
 
 	managerState.mu.Lock()
-	delete(managerState.Services, payload.ServiceID)
+	delete(managerState.services, payload.ServiceID)
 	managerState.mu.Unlock()
 
 	redisClient := db.GetRedisClient()
@@ -212,7 +212,7 @@ func (managerState *ManagerState) HandleNewIncident(ctx context.Context, service
 	log.Printf("[DEBUG] Starting incident %s for service %d", incidentID, serviceID)
 
 	managerState.mu.Lock()
-	service, exists := managerState.Services[serviceID]
+	service, exists := managerState.services[serviceID]
 	managerState.mu.Unlock()
 
 	if !exists {
@@ -254,7 +254,7 @@ func (managerState *ManagerState) HandleNewIncident(ctx context.Context, service
 	}
 
 	go func() {
-		err := managerState.SendIncidentStartMessage(
+		err := managerState.pubSubService.SendIncidentStartMessage(
 			context.Background(),
 			incidentInfo.IncidentID,
 			incidentInfo.ServiceID,
@@ -267,7 +267,7 @@ func (managerState *ManagerState) HandleNewIncident(ctx context.Context, service
 	}()
 
 	go func() {
-		err := managerState.SendNotifyOncallerMessage(
+		err := managerState.pubSubService.SendNotifyOncallerMessage(
 			context.Background(),
 			incidentInfo.IncidentID,
 			incidentInfo.ServiceID,
@@ -337,7 +337,7 @@ func (managerState *ManagerState) HandleExpiredDeadline(ctx context.Context, ser
 	log.Printf("[DEBUG] Deadline expired for service %d, oncaller %s", serviceID, requestedOncaller)
 
 	go func() {
-		err := managerState.SendAcknowledgeTimeoutMessage(
+		err := managerState.pubSubService.SendAcknowledgeTimeoutMessage(
 			context.Background(),
 			incidentInfo.IncidentID,
 			serviceID,
@@ -373,7 +373,7 @@ func (managerState *ManagerState) HandleExpiredDeadline(ctx context.Context, ser
 		}).Err()
 
 		go func() {
-			err := managerState.SendNotifyOncallerMessage(
+			err := managerState.pubSubService.SendNotifyOncallerMessage(
 				context.Background(),
 				incidentInfo.IncidentID,
 				serviceID,
@@ -424,7 +424,7 @@ func (managerState *ManagerState) handleIncidentUnresolved(ctx context.Context, 
 	}
 
 	go func() {
-		err := managerState.SendIncidentUnresolvedMessage(
+		err := managerState.pubSubService.SendIncidentUnresolvedMessage(
 			context.Background(),
 			incidentID,
 			serviceID,
@@ -465,7 +465,7 @@ func (managerState *ManagerState) handleIncidentResolved(ctx context.Context, se
 	}
 
 	go func() {
-		err := managerState.SendIncidentResolvedMessage(
+		err := managerState.pubSubService.SendIncidentResolvedMessage(
 			context.Background(),
 			incidentID,
 			serviceID,

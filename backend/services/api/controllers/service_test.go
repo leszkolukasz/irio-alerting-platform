@@ -4,6 +4,7 @@ import (
 	"alerting-platform/api/db"
 	"alerting-platform/api/dto"
 	"alerting-platform/api/middleware"
+	"alerting-platform/api/pubsub"
 	"alerting-platform/api/redis"
 	db_common "alerting-platform/common/db"
 	"alerting-platform/common/db/firestore"
@@ -22,12 +23,12 @@ import (
 	"gorm.io/gorm"
 )
 
-func setupTestRouter() (*gin.Engine, *MockRepository, *MockPubSubService, *firestore.MockLogRepository, *Controller) {
+func setupTestRouter() (*gin.Engine, *db.MockRepository, *pubsub.MockPubSubService, *firestore.MockLogRepository, *Controller) {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 
-	mockRepo := new(MockRepository)
-	mockPubSub := new(MockPubSubService)
+	mockRepo := new(db.MockRepository)
+	mockPubSub := new(pubsub.MockPubSubService)
 	mockLogRepo := new(firestore.MockLogRepository)
 
 	controller := &Controller{

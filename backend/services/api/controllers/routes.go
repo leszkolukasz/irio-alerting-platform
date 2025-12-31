@@ -18,14 +18,14 @@ import (
 
 type Controller struct {
 	PubSubService pubsub.PubSubServiceI
-	Repository    RepositoryI
+	Repository    db.RepositoryI
 	LogRepository firestore.LogRepositoryI
 }
 
 func RegisterRoutes(r *gin.Engine, authMiddleware *jwt.GinJWTMiddleware) {
 	controller := &Controller{
 		PubSubService: pubsub.NewPubSubService(pubsub_common.GetClient()),
-		Repository:    NewRepository(db.GetDBConnection()),
+		Repository:    db.NewRepository(db.GetDBConnection()),
 		LogRepository: firestore.GetLogRepository(context.Background()),
 	}
 

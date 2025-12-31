@@ -6,20 +6,18 @@ import (
 	"context"
 
 	"google.golang.org/protobuf/types/known/emptypb"
-	"gorm.io/gorm"
 )
 
 type IncidentManagerServiceServer struct {
 	rpc.UnimplementedIncidentManagerServiceServer
+	repo db.RepositoryI
 }
 
 func (s *IncidentManagerServiceServer) GetAllServicesInfo(ctx context.Context, empty *emptypb.Empty) (*rpc.ServicesInfoForIncident, error) {
-	conn := db.GetDBConnection()
+	services, err := s.repo.GetAllServices(ctx)
 
-	var services []db.MonitoredService
-	result := conn.Find(&services)
-	if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
-		return nil, result.Error
+	if err != nil {
+		return nil, err
 	}
 
 	rpcServices := make([]*rpc.ServiceInfoForIncident, 0, len(services))

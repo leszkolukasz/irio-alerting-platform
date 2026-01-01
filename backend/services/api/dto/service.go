@@ -35,3 +35,14 @@ type IncidentEventDTO struct {
 	Type      string `json:"type"`
 	Oncaller  string `json:"oncaller,omitempty"`
 }
+
+type StatusMetrics struct {
+	Granularity string            `json:"granularity"`
+	Data        []StatusDataPoint `json:"data"`
+}
+
+type StatusDataPoint struct {
+	Timestamp string `json:"timestamp"`
+	Success   uint   `json:"success"`
+	Total     uint   `json:"total"`
+}

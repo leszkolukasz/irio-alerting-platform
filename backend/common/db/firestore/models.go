@@ -11,6 +11,7 @@ type LogRepositoryI interface {
 	SaveLog(context.Context, IncidentLog) error
 	SaveMetric(context.Context, MetricLog) error
 	GetIncidentsByService(context.Context, uint) ([]IncidentLog, error)
+	GetMetricsByServiceAndAfterTime(context.Context, uint, time.Time) ([]MetricLog, error)
 }
 
 type LogRepository struct {
@@ -26,7 +27,7 @@ type IncidentLog struct {
 }
 
 type MetricLog struct {
-	ServiceID string    `firestore:"monitored_service_id"`
+	ServiceID int64     `firestore:"monitored_service_id"`
 	Timestamp time.Time `firestore:"timestamp"`
 	Type      string    `firestore:"type"`
 }

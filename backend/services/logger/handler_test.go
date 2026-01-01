@@ -37,6 +37,10 @@ func (m *mockRepo) GetIncidentsByService(ctx context.Context, serviceID uint) ([
 	return nil, nil
 }
 
+func (m *mockRepo) GetMetricsByServiceAndAfterTime(ctx context.Context, serviceID uint, afterTime time.Time) ([]db.MetricLog, error) {
+	return nil, nil
+}
+
 type fakeMessage struct {
 	data        []byte
 	publishTime time.Time

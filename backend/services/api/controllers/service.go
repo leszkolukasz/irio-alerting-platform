@@ -5,6 +5,7 @@ import (
 	db_common "alerting-platform/common/db"
 	"alerting-platform/common/db/firestore"
 	"strconv"
+	"time"
 
 	"alerting-platform/api/db"
 	"alerting-platform/api/dto"
@@ -266,4 +267,90 @@ func (controller *Controller) GetServiceIncidents(c *gin.Context) {
 	}
 
 	c.JSON(200, incidentDTOs)
+}
+
+var granularities = map[string]time.Duration{
+	"hour":  time.Hour,
+	"day":   24 * time.Hour,
+	"week":  7 * 24 * time.Hour,
+	"month": 30 * 24 * time.Hour,
+}
+
+func (controller *Controller) GetServiceStatusMetrics(c *gin.Context) {
+	serviceID := c.Param("id")
+	granularity := c.Query("granularity")
+
+	userIdentity, exists := c.Get(middleware.IdentityKey)
+	if !exists {
+		c.JSON(500, gin.H{"message": "Failed to get user from context"})
+		return
+	}
+
+	jwtUser := userIdentity.(*middleware.JWTUser)
+	ctx := c.Request.Context()
+
+	serviceIDInt, err := strconv.ParseUint(serviceID, 10, 64)
+	if err != nil {
+		c.JSON(400, gin.H{"message": "Invalid service ID", "error": err.Error()})
+		return
+	}
+
+	service, err := controller.Repository.GetServiceByIDAndUserID(ctx, serviceIDInt, uint64(jwtUser.ID))
+	if err != nil {
+		c.JSON(404, gin.H{"message": "Monitored service not found", "error": err.Error()})
+		return
+	}
+
+	var duration time.Duration
+	if val, ok := granularities[granularity]; ok {
+		duration = val
+	} else {
+		c.JSON(400, gin.H{"message": "Invalid granularity"})
+		return
+	}
+
+	startTime := time.Now().UTC().Add(-duration)
+	metrics, err := controller.LogRepository.GetMetricsByServiceAndAfterTime(ctx, service.ID, startTime)
+	if err != nil {
+		c.JSON(500, gin.H{"message": "Failed to retrieve status metrics", "error": err.Error()})
+		return
+	}
+
+	metricsDTO := aggregateMetrics(metrics, startTime)
+
+	response := dto.StatusMetrics{
+		Granularity: granularity,
+		Data:        metricsDTO,
+	}
+
+	c.JSON(200, response)
+}
+
+func aggregateMetrics(metrics []firestore.MetricLog, startTime time.Time) []dto.StatusDataPoint {
+	const binCount = 50
+
+	duration := time.Since(startTime)
+	binDuration := duration / binCount
+	bins := make([]dto.StatusDataPoint, binCount)
+
+	for i := 0; i < binCount; i++ {
+		binTime := startTime.Add(time.Duration(i) * binDuration)
+		bins[i] = dto.StatusDataPoint{
+			Timestamp: binTime.Format(time.RFC3339),
+			Success:   0,
+			Total:     0,
+		}
+	}
+
+	for _, metric := range metrics {
+		binIndex := int(metric.Timestamp.Sub(startTime) / binDuration)
+		if binIndex >= 0 && binIndex < binCount {
+			bins[binIndex].Total++
+			if metric.Type == "UP" {
+				bins[binIndex].Success++
+			}
+		}
+	}
+
+	return bins
 }

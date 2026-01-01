@@ -1,7 +1,7 @@
 SERVICE_ID=$1
 SERVICE_STATUS=$2
 
-DATA_BASE64=$(echo -n "{\"service_id\": $SERVICE_ID}" | base64)
+DATA_BASE64=$(echo -n "{\"service_id\": $SERVICE_ID, \"timestamp\": \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\"}" | base64)
 
 curl -X POST http://localhost:8085/v1/projects/test-project/topics/service-$SERVICE_STATUS:publish \
 -H "Content-Type: application/json" \

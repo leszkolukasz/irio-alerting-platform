@@ -15,20 +15,26 @@ import { unreachable } from "@/lib/utils";
 import { useMemo } from "react";
 import { Card, CardContent } from "../ui/card";
 import { TabsList, Tabs, TabsContent, TabsTrigger } from "../ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const formatDate = (dateStr: string, granularity: Granularity) => {
   const date = parseISO(dateStr);
 
   switch (granularity) {
-    case "minute":
-      return format(date, "HH:mm");
     case "hour":
-      return format(date, "HH:00");
     case "day":
-      return format(date, "dd MMM");
+      return format(date, "HH:mm");
     case "week":
     case "month":
-      return format(date, "MMM yyyy");
+      return format(date, "dd MMM");
     default:
       unreachable(granularity);
   }
@@ -66,11 +72,21 @@ const uptimeConfig = {
   },
 } satisfies ChartConfig;
 
-export const MetricsGraph = ({ metrics }: { metrics: StatusMetrics }) => {
+type Props = {
+  metrics: StatusMetrics;
+  granularity: Granularity;
+  onGranularityChange: (granularity: Granularity) => void;
+};
+
+export const MetricsGraph = ({
+  metrics,
+  granularity,
+  onGranularityChange,
+}: Props) => {
   const extendedMetrics: ExtendedStatusMetricsEntry[] = useMemo(() => {
     return metrics.data.map((entry) => ({
       ...entry,
-      uptime: entry.total === 0 ? 100 : (entry.success / entry.total) * 100,
+      uptime: entry.total === 0 ? 0 : (entry.success / entry.total) * 100,
       error: entry.total - entry.success,
     }));
   }, [metrics.data]);
@@ -78,10 +94,27 @@ export const MetricsGraph = ({ metrics }: { metrics: StatusMetrics }) => {
   return (
     <div>
       <Tabs defaultValue="uptime">
-        <TabsList>
-          <TabsTrigger value="uptime">Uptime</TabsTrigger>
-          <TabsTrigger value="volume">Volume</TabsTrigger>
-        </TabsList>
+        <div className="mb-4 flex items-center justify-between">
+          <TabsList>
+            <TabsTrigger value="uptime">Uptime</TabsTrigger>
+            <TabsTrigger value="volume">Volume</TabsTrigger>
+          </TabsList>
+
+          <Select value={granularity} onValueChange={onGranularityChange}>
+            <SelectTrigger className="w-45">
+              <SelectValue placeholder="Select a period" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Period</SelectLabel>
+                <SelectItem value="hour">Last hour</SelectItem>
+                <SelectItem value="day">Last 24 hours</SelectItem>
+                <SelectItem value="week">Last 7 days</SelectItem>
+                <SelectItem value="month">Last 30 days</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
 
         <Card className="mt-2">
           <CardContent>

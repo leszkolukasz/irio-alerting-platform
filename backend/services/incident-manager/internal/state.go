@@ -45,8 +45,10 @@ type ManagerState struct {
 
 func NewManagerState(ctx context.Context, psClient *pubsub.Client) *ManagerState {
 	state := &ManagerState{
+		mu:            sync.Mutex{},
 		pubSubService: pubsub_internal.NewPubSubService(psClient),
 		services:      make(map[uint64]ServiceInfo),
+		locks:         make(map[uint64]*sync.Mutex),
 	}
 
 	servicesInfo := rpc.GetAllServicesInfo(ctx)

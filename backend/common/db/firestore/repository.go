@@ -5,6 +5,7 @@ import (
 	"context"
 	"log"
 	"sync"
+	"time"
 
 	"cloud.google.com/go/firestore"
 	"google.golang.org/api/iterator"
@@ -84,6 +85,30 @@ func (r *LogRepository) GetIncidentsByService(ctx context.Context, serviceID uin
 	}
 
 	return incidents, nil
+}
+
+func (r *LogRepository) GetMetricsByServiceAndAfterTime(ctx context.Context, serviceID uint, afterTime time.Time) ([]MetricLog, error) {
+	var metrics []MetricLog
+
+	query := r.client.Collection(MetricLogsCollection).
+		Where("monitored_service_id", "==", int64(serviceID)).
+		Where("timestamp", ">=", afterTime)
+
+	docs, err := query.Documents(ctx).GetAll()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, doc := range docs {
+		var metric MetricLog
+		if err := doc.DataTo(&metric); err != nil {
+			log.Printf("[WARNING] Failed to map document %s to MetricLog: %v", doc.Ref.ID, err)
+			continue
+		}
+		metrics = append(metrics, metric)
+	}
+
+	return metrics, nil
 }
 
 func (r *LogRepository) HealthCheck() bool {

@@ -22,7 +22,7 @@ export type MonitoredService = {
   status: ServiceStatus;
 };
 
-export type Granularity = "month" | "week" | "day" | "hour" | "minute";
+export type Granularity = "month" | "week" | "day" | "hour";
 
 export type StatusMetricsEntry = {
   timestamp: string;
@@ -189,4 +189,20 @@ export const useGetIncidents = (serviceID: MonitoredService["id"]) =>
         );
     },
     staleTime: 1000 * 60 * 5,
+  });
+
+export const useGetStatusMetrics = (
+  serviceID: MonitoredService["id"],
+  granularity: Granularity
+) =>
+  useQuery({
+    queryKey: [CacheKeys.ServiceStatusMetrics, serviceID, granularity],
+    queryFn: async () => {
+      return axios
+        .get<StatusMetrics>(
+          `/services/${serviceID}/metrics?granularity=${granularity}`
+        )
+        .then((res) => res.data);
+    },
+    staleTime: 1000 * 60 * 2,
   });

@@ -24,8 +24,8 @@ func GetJWTMiddleware() *jwt.GinJWTMiddleware {
 	middleware := &jwt.GinJWTMiddleware{
 		IdentityKey:     IdentityKey,
 		Key:             []byte(config.GetConfig().Secret),
-		Timeout:         time.Hour * 24, // TODO; Refresh token returns empty claims for some reason.
-		MaxRefresh:      time.Hour * 24,
+		Timeout:         time.Hour * 240, // TODO; Refresh token returns empty claims for some reason.
+		MaxRefresh:      time.Hour * 240,
 		Authenticator:   authenticator(),
 		IdentityHandler: identityHandler(),
 		PayloadFunc:     payloadFunc(),

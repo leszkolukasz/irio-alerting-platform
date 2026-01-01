@@ -591,3 +591,99 @@ func TestGetMonitoredServiceByID(t *testing.T) {
 		mockRepo.AssertExpectations(t)
 	})
 }
+
+func TestGetServiceStatusMetrics(t *testing.T) {
+	_, mockRepo, _, mockLogRepo, controller := setupTestRouter()
+
+	jwtUser := &middleware.JWTUser{ID: 1, Email: "test@user.com"}
+	serviceID := "1"
+	service := &db.MonitoredService{Model: gorm.Model{ID: 1}, UserID: 1}
+	metrics := []firestore.MetricLog{
+		{ServiceID: 1, Type: "UP", Timestamp: time.Now()},
+		{ServiceID: 1, Type: "DOWN", Timestamp: time.Now().Add(-1 * time.Minute)},
+	}
+
+	t.Run("Success 200", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+
+		c.Request, _ = http.NewRequest(http.MethodGet, "/services/"+serviceID+"/metrics?granularity=hour", nil)
+		c.Set(middleware.IdentityKey, jwtUser)
+		c.Params = gin.Params{gin.Param{Key: "id", Value: serviceID}}
+
+		mockRepo.On("GetServiceByIDAndUserID", mock.Anything, uint64(1), uint64(jwtUser.ID)).Return(service, nil).Once()
+		mockLogRepo.On("GetMetricsByServiceAndAfterTime", mock.Anything, uint(1), mock.AnythingOfType("time.Time")).Return(metrics, nil).Once()
+
+		controller.GetServiceStatusMetrics(c)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		mockRepo.AssertExpectations(t)
+		mockLogRepo.AssertExpectations(t)
+	})
+
+	t.Run("Invalid Service ID 400", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+
+		c.Request, _ = http.NewRequest(http.MethodGet, "/services/abc/metrics", nil)
+		c.Set(middleware.IdentityKey, jwtUser)
+		c.Params = gin.Params{gin.Param{Key: "id", Value: "abc"}}
+
+		controller.GetServiceStatusMetrics(c)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "Invalid service ID")
+	})
+
+	t.Run("Invalid Granularity 400", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+
+		c.Request, _ = http.NewRequest(http.MethodGet, "/services/"+serviceID+"/metrics?granularity=invalid", nil)
+		c.Set(middleware.IdentityKey, jwtUser)
+		c.Params = gin.Params{gin.Param{Key: "id", Value: serviceID}}
+
+		mockRepo.On("GetServiceByIDAndUserID", mock.Anything, uint64(1), uint64(jwtUser.ID)).Return(service, nil).Once()
+
+		controller.GetServiceStatusMetrics(c)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "Invalid granularity")
+	})
+
+	t.Run("Service Not Found 404", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+
+		c.Request, _ = http.NewRequest(http.MethodGet, "/services/"+serviceID+"/metrics", nil)
+		c.Set(middleware.IdentityKey, jwtUser)
+		c.Params = gin.Params{gin.Param{Key: "id", Value: serviceID}}
+
+		mockRepo.On("GetServiceByIDAndUserID", mock.Anything, uint64(1), uint64(jwtUser.ID)).Return(nil, errors.New("not found")).Once()
+
+		controller.GetServiceStatusMetrics(c)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+		assert.Contains(t, w.Body.String(), "Monitored service not found")
+		mockRepo.AssertExpectations(t)
+	})
+
+	t.Run("Firestore Error 500", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(w)
+
+		c.Request, _ = http.NewRequest(http.MethodGet, "/services/"+serviceID+"/metrics?granularity=hour", nil)
+		c.Set(middleware.IdentityKey, jwtUser)
+		c.Params = gin.Params{gin.Param{Key: "id", Value: serviceID}}
+
+		mockRepo.On("GetServiceByIDAndUserID", mock.Anything, uint64(1), uint64(jwtUser.ID)).Return(service, nil).Once()
+		mockLogRepo.On("GetMetricsByServiceAndAfterTime", mock.Anything, uint(1), mock.AnythingOfType("time.Time")).Return(nil, errors.New("db error")).Once()
+
+		controller.GetServiceStatusMetrics(c)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.Contains(t, w.Body.String(), "Failed to retrieve status metrics")
+		mockRepo.AssertExpectations(t)
+		mockLogRepo.AssertExpectations(t)
+	})
+}

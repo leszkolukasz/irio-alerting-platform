@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	firestore "alerting-platform/common/db/firestore"
@@ -35,7 +34,7 @@ func HandleMessage(
 	switch eventType {
 	case pubsub.ServiceUpTopic, pubsub.ServiceDownTopic:
 		err = repo.SaveMetric(ctx, firestore.MetricLog{
-			ServiceID: fmt.Sprintf("%d", payload.ServiceID),
+			ServiceID: int64(payload.ServiceID),
 			Timestamp: *eventTime,
 			Type:      EventTypeToStatus[eventType],
 		})

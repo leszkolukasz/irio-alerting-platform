@@ -2,6 +2,7 @@ package firestore
 
 import (
 	"context"
+	"time"
 
 	"github.com/stretchr/testify/mock"
 )
@@ -26,4 +27,12 @@ func (m *MockLogRepository) GetIncidentsByService(ctx context.Context, serviceID
 		return nil, args.Error(1)
 	}
 	return args.Get(0).([]IncidentLog), args.Error(1)
+}
+
+func (m *MockLogRepository) GetMetricsByServiceAndAfterTime(ctx context.Context, serviceID uint, afterTime time.Time) ([]MetricLog, error) {
+	args := m.Called(ctx, serviceID, afterTime)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]MetricLog), args.Error(1)
 }

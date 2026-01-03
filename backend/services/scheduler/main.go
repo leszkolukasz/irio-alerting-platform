@@ -84,7 +84,7 @@ func (s *scheduler) scheduleMonitor(ctx context.Context, service *rpc.ServiceInf
 				_, err = result.Get(ctx)
 
 				if err != nil {
-					log.Println("Error could not write monitoringTask to the broker")
+					log.Printf("Error could not write monitoringTask to the broker: %v\n", err)
 				}
 			}
 		}

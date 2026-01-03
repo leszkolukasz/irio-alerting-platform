@@ -7,6 +7,7 @@ COPY common/go.mod common/go.sum ./common/
 COPY services/api/go.mod services/api/go.sum ./services/api/
 COPY services/logger/go.mod services/logger/go.sum ./services/logger/
 COPY services/incident-manager/go.mod services/incident-manager/go.sum ./services/incident-manager/
+COPY services/notifier/go.mod services/notifier/go.sum ./services/notifier/
 
 RUN go mod download
 

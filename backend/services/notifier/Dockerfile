@@ -12,16 +12,16 @@ COPY services/notifier/go.mod services/notifier/go.sum ./services/notifier/
 RUN go mod download
 
 COPY common/ ./common/
-COPY services/incident-manager/ ./services/incident-manager/
+COPY services/notifier/ ./services/notifier/
 
-WORKDIR /app/services/incident-manager
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/incident-manager .
+WORKDIR /app/services/notifier
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/notifier .
 
 FROM alpine:latest
 
 WORKDIR /root/
 
-COPY --from=builder /app/incident-manager .
-COPY --from=builder /app/services/incident-manager/.env .
+COPY --from=builder /app/notifier .
+COPY --from=builder /app/services/notifier/.env .
 
-CMD ["./incident-manager"]
+CMD ["./notifier"]

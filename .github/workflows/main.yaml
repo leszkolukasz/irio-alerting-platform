@@ -1,0 +1,168 @@
+name: Production Pipeline
+
+on:
+  # push:
+  #   branches: [main]
+  workflow_dispatch:
+
+env:
+  TF_BOOTSTRAP: infra/01-bootstrap
+  TF_INFRA: infra/02-infra
+  TF_HELM: infra/03-helm
+  BACKEND_DIR: backend
+  FRONTEND_DIR: frontend
+
+jobs:
+  bootstrap:
+    name: "Bootstrap"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Auth GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Apply (01-bootstrap)
+        run: |
+          cd ${{ env.TF_BOOTSTRAP }}
+          terraform init
+          terraform apply -auto-approve
+
+  create-infra:
+    name: "Create Infrastructure"
+    needs: bootstrap
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Auth GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Apply (02-infra)
+        run: |
+          cd ${{ env.TF_INFRA }}
+          terraform init
+          terraform apply -auto-approve
+
+  backend-ci:
+    name: "Backend"
+    needs: bootstrap
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Auth GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: Install Lint Tool
+        run: curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.7.2
+
+      - name: Configure Docker Auth
+        run: gcloud auth configure-docker europe-west1-docker.pkg.dev
+
+      - name: Init Terraform State
+        uses: hashicorp/setup-terraform@v3
+        # with:
+        #   terraform_wrapper: false
+      - run: cd ${{ env.TF_BOOTSTRAP }} && terraform init
+
+      - name: Lint Backend
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: make lint
+
+      - name: Test Backend
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: make test
+
+      - name: Build Images
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: make build
+
+      - name: Push Images
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: make push
+
+  frontend-ci:
+    name: "Frontend"
+    needs: bootstrap
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Auth GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Init Terraform State
+        uses: hashicorp/setup-terraform@v3
+        # with:
+        #   terraform_wrapper: false
+      - run: cd ${{ env.TF_BOOTSTRAP }} && terraform init
+
+      - name: Install Deps
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: make lint
+
+      - name: Build
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: make build
+
+      - name: Deploy to GCS
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: make deploy
+
+  deploy-helm:
+    name: "Deploy Helm Releases"
+    needs: [create-infra, backend-ci]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Auth GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Install GKE Auth Plugin
+        run: gcloud components install gke-gcloud-auth-plugin
+
+      - name: Terraform Apply (03-helm)
+        run: |
+          cd ${{ env.TF_HELM }}
+          terraform init
+          terraform apply -auto-approve

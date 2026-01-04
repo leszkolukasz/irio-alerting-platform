@@ -90,11 +90,11 @@ interface TimelineItemProps extends Omit<HTMLMotionProps<"li">, "ref"> {
   /** Custom icon element */
   icon?: React.ReactNode;
   /** Color theme for the icon */
-  iconColor?: TimelineColor;
+  iconColor?: TimelineColor | string;
   /** Current status of the item */
   status?: "completed" | "in-progress" | "pending";
   /** Color theme for the connector line */
-  connectorColor?: TimelineColor;
+  connectorColor?: TimelineColor | string;
   /** Whether to show the connector line */
   showConnector?: boolean;
   /** Size of the icon */
@@ -390,7 +390,7 @@ TimelineTitle.displayName = "TimelineTitle";
 const TimelineIcon = ({
   icon,
   color = "primary",
-  status = "completed",
+  // status = "completed",
   iconSize = "md",
 }: {
   icon?: React.ReactNode;

@@ -1,12 +1,13 @@
 terraform {
+  backend "gcs" {
+    bucket = "alerting-platform-tf-state"
+    prefix = "terraform/infra"
+  }
+
   required_providers {
     google = {
       source  = "hashicorp/google"
       version = ">= 7.0.0"
-    }
-    helm = {
-      source  = "hashicorp/helm"
-      version = ">= 3.0.0"
     }
   }
 }
@@ -16,37 +17,15 @@ provider "google" {
   region  = var.region
 }
 
-resource "google_artifact_registry_repository" "docker_registry" {
-  repository_id = "docker-registry"
-  format        = "DOCKER"
-}
-
-## Bucket
-
-resource "google_storage_bucket" "static_assets" {
-  name     = "alerting-platform-static-assets"
-  location = "EU"
-
-  force_destroy               = true
-  uniform_bucket_level_access = true
-
-  website {
-    main_page_suffix = "index.html"
-    not_found_page   = "index.html"
-  }
-}
-
-resource "google_storage_bucket_iam_member" "public_bucket_access" {
-  bucket = google_storage_bucket.static_assets.name
-  role   = "roles/storage.objectViewer"
-  member = "allUsers"
-}
-
 ## Load Balancer
+
+data "google_storage_bucket" "static_assets" {
+  name = "alerting-platform-static-assets-${var.project_id}"
+}
 
 resource "google_compute_backend_bucket" "static_assets_backend" {
   name        = "static-assets-backend"
-  bucket_name = google_storage_bucket.static_assets.name
+  bucket_name = data.google_storage_bucket.static_assets.name
 
   enable_cdn = true
 

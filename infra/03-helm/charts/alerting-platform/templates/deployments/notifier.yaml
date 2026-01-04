@@ -19,9 +19,6 @@ spec:
           image: "{{ .Values.gcloud.registryURL }}/alerting-platform-notifier:{{ .Values.env.VERSION }}"
           imagePullPolicy: Always          
           env:
-            - name: PROJECT_ID
-              value: {{ .Values.gcloud.projectID | quote }}
-              
           {{- range $key, $value := .Values.env }}
             - name: {{ $key | quote }}
               value: {{ $value | required (print "Missing value: " $key) | quote }}

@@ -31,7 +31,7 @@ func TestResolveIncident(t *testing.T) {
 	t.Run("Success 200", func(t *testing.T) {
 		validToken, _ := magic_link.GenerateToken(incidentID, serviceID, email, []byte(testSecret))
 
-		mockPubSub.On("SendIncidentResolvedMessage", mock.Anything, incidentID, email).Return(nil).Once()
+		mockPubSub.On("SendOncallerAcknowledgedMessage", mock.Anything, incidentID, email).Return(nil).Once()
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
@@ -57,7 +57,7 @@ func TestResolveIncident(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 		assert.Contains(t, w.Body.String(), "Missing token")
-		mockPubSub.AssertNotCalled(t, "SendIncidentResolvedMessage")
+		mockPubSub.AssertNotCalled(t, "SendOncallerAcknowledgedMessage")
 	})
 
 	t.Run("Invalid Token 401", func(t *testing.T) {
@@ -71,8 +71,8 @@ func TestResolveIncident(t *testing.T) {
 		controller.ResolveIncident(c)
 
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
-		assert.Contains(t, w.Body.String(), "Link jest nieprawidłowy lub wygasł")
-		mockPubSub.AssertNotCalled(t, "SendIncidentResolvedMessage")
+		assert.Contains(t, w.Body.String(), "Invalid or expired token")
+		mockPubSub.AssertNotCalled(t, "SendOncallerAcknowledgedMessage")
 	})
 
 	t.Run("Wrong Secret 401", func(t *testing.T) {
@@ -88,13 +88,13 @@ func TestResolveIncident(t *testing.T) {
 		controller.ResolveIncident(c)
 
 		assert.Equal(t, http.StatusUnauthorized, w.Code)
-		mockPubSub.AssertNotCalled(t, "SendIncidentResolvedMessage")
+		mockPubSub.AssertNotCalled(t, "SendOncallerAcknowledgedMessage")
 	})
 
 	t.Run("PubSub Error 500", func(t *testing.T) {
 		validToken, _ := magic_link.GenerateToken(incidentID, serviceID, email, []byte(testSecret))
 
-		mockPubSub.On("SendIncidentResolvedMessage", mock.Anything, incidentID, email).Return(errors.New("pubsub connection failed")).Once()
+		mockPubSub.On("SendOncallerAcknowledgedMessage", mock.Anything, incidentID, email).Return(errors.New("pubsub connection failed")).Once()
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
@@ -105,7 +105,7 @@ func TestResolveIncident(t *testing.T) {
 		controller.ResolveIncident(c)
 
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
-		assert.Contains(t, w.Body.String(), "Failed to send service deleted message")
+		assert.Contains(t, w.Body.String(), "Failed to send on-caller acknowledged message")
 		mockPubSub.AssertExpectations(t)
 	})
 }

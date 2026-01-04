@@ -1,27 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: alerting-platform-incident-manager
+  name: alerting-platform-logger
   labels:
-    app: alerting-platform-incident-manager
+    app: alerting-platform-logger
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: alerting-platform-incident-manager
+      app: alerting-platform-logger
   template:
     metadata:
       labels:
-        app: alerting-platform-incident-manager
+        app: alerting-platform-logger
     spec:
       containers:
-        - name: alerting-platform-incident-manager
-          image: "{{ .Values.gcloud.registryURL }}/alerting-platform-incident-manager:{{ .Values.env.VERSION }}"
+        - name: alerting-platform-logger
+          image: "{{ .Values.gcloud.registryURL }}/alerting-platform-logger:{{ .Values.env.VERSION }}"
           imagePullPolicy: Always
           env:
-            - name: PROJECT_ID
-              value: {{ .Values.gcloud.projectID | quote }}
-
           {{- range $key, $value := .Values.env }}
             - name: {{ $key | quote }}
               value: {{ $value | required (print "Missing value: " $key) | quote }}

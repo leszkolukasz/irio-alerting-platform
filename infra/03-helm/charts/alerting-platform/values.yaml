@@ -29,7 +29,7 @@ env:
   EMAIL_FROM: null
 
 secrets:
-  SECRET: secret # TODO: To powinno być gdzieś indziej ustawiane
+  SECRET: null
   POSTGRES_PASSWORD: null
   REDIS_PASSWORD: null
   SMTP_PASS: null

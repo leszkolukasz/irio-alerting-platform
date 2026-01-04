@@ -1,4 +1,52 @@
+terraform {
+  backend "gcs" {
+    bucket = "alerting-platform-tf-state"
+    prefix = "terraform/helm"
+  }
+
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 7.0.0"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = ">= 3.0.0"
+    }
+  }
+}
+
+provider "google" {
+  project = var.project_id
+  region  = var.region
+}
+
+## Data
+
 data "google_client_config" "default" {}
+
+data "google_container_cluster" "gke" {
+  name     = "alerting-platform-gke"
+  location = var.region
+}
+
+data "google_redis_instance" "redis" {
+  name   = "alerting-platform-redis"
+  region = var.region
+}
+
+data "google_sql_database_instance" "db_instance" {
+  name = "alerting-platform-db"
+}
+
+data "google_artifact_registry_repository" "docker_registry" {
+  location      = var.region
+  repository_id = "docker-registry"
+}
+
+data "google_compute_global_address" "backend_ip" {
+  name = "alerting-platform-backend-ip"
+}
 
 provider "helm" {
   kubernetes = {
@@ -7,6 +55,8 @@ provider "helm" {
     cluster_ca_certificate = base64decode(google_container_cluster.gke.master_auth[0].cluster_ca_certificate)
   }
 }
+
+## Deploy
 
 resource "helm_release" "alerting-platform" {
   name             = "alerting-platform"
@@ -62,7 +112,7 @@ resource "helm_release" "alerting-platform" {
     },
     {
       name  = "gcloud.registryURL"
-      value = google_artifact_registry_repository.docker_registry.registry_uri
+      value = data.google_artifact_registry_repository.docker_registry.registry_uri
     },
     {
       name  = "env.FIRESTORE_DB"
@@ -85,29 +135,17 @@ resource "helm_release" "alerting-platform" {
       value = var.email_from
     },
     {
-      name  = "notifier.autoscaling.enabled"
-      value = "true"
-    },
-    {
-      name  = "notifier.autoscaling.minReplicas"
-      value = "1"
-    },
-    {
-      name  = "notifier.autoscaling.maxReplicas"
-      value = "3"
-    },
-    {
-      name  = "notifier.autoscaling.targetCPUUtilizationPercentage"
-      value = "70"
-    },
-    {
       name  = "gcloud.publicAPIURL"
       value = "http://${google_compute_global_address.backend_ip.address}"
     }
-    ]
+  ]
 
 
   set_sensitive = [
+    {
+      name  = "secrets.SECRET",
+      value = var.secret
+    },
     {
       name  = "secrets.POSTGRES_PASSWORD"
       value = google_sql_user.db_user.password

@@ -2,13 +2,16 @@ use flake
 
 export ENV="dev" # or prod
 export SECRET="secret"
+export TF_VAR_secret=$SECRET
 export API_HOST="localhost"
 export REST_API_PORT="8080"
 export RPC_PORT="9090"
 export POSTGRES_HOST="localhost"
 export POSTGRES_PORT="5432"
 export POSTGRES_USER="admin"
+export TF_VAR_db_user=$POSTGRES_USER
 export POSTGRES_PASSWORD="password"
+export TF_VAR_db_password=$POSTGRES_PASSWORD
 export POSTGRES_DB="alerting_platform_api"
 export REDIS_HOST="localhost"
 export REDIS_PORT="6379"
@@ -22,7 +25,6 @@ export PUBSUB_EMULATOR_PORT="8085"
 export PUBSUB_EMULATOR_HOST="localhost:$PUBSUB_EMULATOR_PORT" 
 export FIRESTORE_EMULATOR_PORT="8086"
 export FIRESTORE_EMULATOR_HOST="localhost:$FIRESTORE_EMULATOR_PORT
-export REGISTRY="europe-west1-docker.pkg.dev/$PROJECT_ID/docker-registry"
 export SMTP_HOST="sandbox.smtp.mailtrap.io"
 export TF_VAR_smtp_host="smtp.mailersend.net"
 export SMTP_PORT="2525"

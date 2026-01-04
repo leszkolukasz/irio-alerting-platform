@@ -1,15 +1,10 @@
-variable "db_user" {
+variable "project_id" {
   type = string
 }
 
-variable "db_password" {
+variable "secret" {
   type      = string
   sensitive = true
-}
-
-variable "project_id" {
-  type    = string
-  default = "fill_this"
 }
 
 variable "region" {
@@ -33,7 +28,7 @@ variable "build_time" {
 }
 
 variable "smtp_host" {
-  type    = string
+  type = string
 }
 
 variable "smtp_port" {

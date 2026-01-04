@@ -21,14 +21,14 @@ func (controller *Controller) ResolveIncident(c *gin.Context) {
 
 	claims, err := magic_link.ParseToken(tokenString, secretKey)
 	if err != nil {
-		c.String(http.StatusUnauthorized, "Link jest nieprawidłowy lub wygasł.")
+		c.String(http.StatusUnauthorized, "Invalid or expired token")
 		return
 	}
-	log.Printf("Resolving incident %s for service %d by on-caller %s", claims.IncidentID, claims.ServiceID, claims.OnCaller)
+	log.Printf("[DEBUG] Resolving incident %s for service %d by on-caller %s", claims.IncidentID, claims.ServiceID, claims.OnCaller)
 
-	err = controller.PubSubService.SendIncidentResolvedMessage(c, claims.IncidentID, claims.OnCaller)
+	err = controller.PubSubService.SendOncallerAcknowledgedMessage(c, claims.IncidentID, claims.OnCaller)
 	if err != nil {
-		c.JSON(500, gin.H{"message": "Failed to send service deleted message", "error": err.Error()})
+		c.JSON(500, gin.H{"message": "Failed to send on-caller acknowledged message", "error": err.Error()})
 		return
 	}
 

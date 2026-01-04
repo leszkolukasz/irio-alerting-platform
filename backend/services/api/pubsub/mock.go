@@ -25,3 +25,8 @@ func (m *MockPubSubService) SendServiceDeletedMessage(ctx context.Context, servi
 	args := m.Called(ctx, serviceID)
 	return args.Error(0)
 }
+
+func (m *MockPubSubService) SendIncidentResolvedMessage(ctx context.Context, incidentID string, onCaller string) error {
+	args := m.Called(ctx, incidentID, onCaller)
+	return args.Error(0)
+}

@@ -67,8 +67,44 @@ resource "helm_release" "alerting-platform" {
     {
       name  = "env.FIRESTORE_DB"
       value = var.firestore_db
+    },
+    {
+      name  = "env.SMTP_HOST"
+      value = var.smtp_host
+    },
+    {
+      name  = "env.SMTP_PORT"
+      value = var.smtp_port
+    },
+    {
+      name  = "env.SMTP_USER"
+      value = var.smtp_user
+    },
+    {
+      name  = "env.EMAIL_FROM"
+      value = var.email_from
+    },
+    {
+      name  = "notifier.autoscaling.enabled"
+      value = "true"
+    },
+    {
+      name  = "notifier.autoscaling.minReplicas"
+      value = "1"
+    },
+    {
+      name  = "notifier.autoscaling.maxReplicas"
+      value = "3"
+    },
+    {
+      name  = "notifier.autoscaling.targetCPUUtilizationPercentage"
+      value = "70"
+    },
+    {
+      name  = "gcloud.publicAPIURL"
+      value = "http://${google_compute_global_address.backend_ip.address}"
     }
-  ]
+    ]
 
 
   set_sensitive = [
@@ -79,6 +115,10 @@ resource "helm_release" "alerting-platform" {
     {
       name  = "secrets.REDIS_PASSWORD"
       value = google_redis_instance.redis.auth_string
+    },
+    {
+      name  = "secrets.SMTP_PASS"
+      value = var.smtp_pass
     }
   ]
 }

@@ -138,3 +138,10 @@ resource "google_pubsub_subscription" "incident_manager_oncaller_acknowledged" {
 
   enable_message_ordering = true
 }
+
+resource "google_pubsub_subscription" "notifier_notify_oncaller" {
+  name  = "notifier-notify-oncaller"
+  topic = google_pubsub_topic.notify_oncaller.name
+
+  enable_message_ordering = true
+}

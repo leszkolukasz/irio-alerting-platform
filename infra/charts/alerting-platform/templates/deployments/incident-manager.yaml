@@ -17,11 +17,11 @@ spec:
       containers:
         - name: alerting-platform-incident-manager
           image: "{{ .Values.gcloud.registryURL }}/alerting-platform-incident-manager:{{ .Values.env.VERSION }}"
-          imagePullPolicy: Always          
+          imagePullPolicy: Always
           env:
             - name: PROJECT_ID
               value: {{ .Values.gcloud.projectID | quote }}
-              
+
           {{- range $key, $value := .Values.env }}
             - name: {{ $key | quote }}
               value: {{ $value | required (print "Missing value: " $key) | quote }}

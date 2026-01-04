@@ -38,6 +38,7 @@ func RegisterRoutes(r *gin.Engine, authMiddleware *jwt.GinJWTMiddleware) {
 	v1.POST("/login", authMiddleware.LoginHandler)
 	v1.POST("/refresh", authMiddleware.RefreshHandler)
 	v1.POST("/users", controller.RegisterUser)
+	v1.GET("/incidents/resolve/:token", controller.ResolveIncident)
 
 	authenticated := v1.Group("/", authMiddleware.MiddlewareFunc())
 	{

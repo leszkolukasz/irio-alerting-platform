@@ -5,6 +5,7 @@ use (
 	./services/api
 	./services/incident-manager
 	./services/logger
+	./services/notifier
 	./services/scheduler
 	./services/worker
 )

@@ -31,6 +31,11 @@ type Config struct {
 	RedisPrefix      string `env:"REDIS_PREFIX,required"`
 	ProjectID        string `env:"PROJECT_ID,required"`
 	FirestoreDB      string `env:"FIRESTORE_DB" envDefault:"logger-db"`
+	SmtpHost         string `env:"SMTP_HOST" envDefault:"smtp.gmail.com"`
+	SmtpPort         string `env:"SMTP_PORT" envDefault:"587"`
+	SmtpUser         string `env:"SMTP_USER"`
+	SmtpPass         string `env:"SMTP_PASS"`
+	EmailFrom        string `env:"EMAIL_FROM" envDefault:"alerts@alerting.platform"`
 }
 
 var (

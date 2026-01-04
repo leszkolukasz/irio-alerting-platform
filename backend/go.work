@@ -6,4 +6,6 @@ use (
 	./services/incident-manager
 	./services/logger
 	./services/notifier
+	./services/scheduler
+	./services/worker
 )

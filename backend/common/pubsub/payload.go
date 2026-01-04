@@ -9,6 +9,11 @@ import (
 	"cloud.google.com/go/pubsub"
 )
 
+type MonitoringTask struct {
+	ServiceID uint64 `json:"service_id"`
+	URL       string `json:"url"`
+}
+
 type PubSubPayloadData struct {
 	AllowedResponseTime int      `json:"allowed_response_time,omitempty"`
 	HealthCheckInterval int      `json:"health_check_interval,omitempty"`

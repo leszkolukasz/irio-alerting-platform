@@ -12,12 +12,12 @@ env:
   BACKEND_DIR: backend
   FRONTEND_DIR: frontend
 
-  TF_VAR_project_id: "${{ env.PROJECT_ID }}"
+  TF_VAR_project_id: "${{ vars.PROJECT_ID }}"
   TF_VAR_secret: "${{ secrets.SECRET }}"
-  TF_VAR_db_user: "${{ env.DB_USER }}"
+  TF_VAR_db_user: "${{ vars.DB_USER }}"
   TF_VAR_db_password: "${{ secrets.DB_PASSWORD }}"
-  TF_VAR_smtp_host: "${{ env.SMTP_HOST }}"
-  TF_VAR_smtp_user: "${{ env.SMTP_USER }}"
+  TF_VAR_smtp_host: "${{ vars.SMTP_HOST }}"
+  TF_VAR_smtp_user: "${{ vars.SMTP_USER }}"
   TF_VAR_smtp_pass: "${{ secrets.SMTP_PASS }}"
 
   # Set via Repo Settings

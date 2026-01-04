@@ -1,6 +1,5 @@
 terraform {
   backend "gcs" {
-    bucket = "alerting-platform-tf-state"
     prefix = "terraform/helm"
   }
 

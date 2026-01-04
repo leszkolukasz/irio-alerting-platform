@@ -13,3 +13,5 @@ docker push $REGISTRY_URL/alerting-platform-logger:latest
 ```
 
 `REGISTRY_URL` value can be found using `terraform output`.
+
+Makefile contains utility commands for building and pushing docker images.

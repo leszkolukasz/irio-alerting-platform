@@ -5,6 +5,7 @@ gcloud:
   region: null
   dbInstance: null
   registryURL: null
+  publicAPIURL: null
 
 env:
   ENV: "prod"
@@ -22,8 +23,20 @@ env:
   REDIS_PORT: null
   REDIS_DB: 0
   FIRESTORE_DB: null
+  SMTP_HOST: null
+  SMTP_PORT: null
+  SMTP_USER: null
+  EMAIL_FROM: null
 
 secrets:
   SECRET: secret # TODO: To powinno być gdzieś indziej ustawiane
   POSTGRES_PASSWORD: null
   REDIS_PASSWORD: null
+  SMTP_PASS: null
+
+notifier:
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 70

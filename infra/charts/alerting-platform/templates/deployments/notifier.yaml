@@ -1,27 +1,27 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: alerting-platform-logger
+  name: alerting-platform-notifier
   labels:
-    app: alerting-platform-logger
+    app: alerting-platform-notifier
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: alerting-platform-logger
+      app: alerting-platform-notifier
   template:
     metadata:
       labels:
-        app: alerting-platform-logger
+        app: alerting-platform-notifier
     spec:
       containers:
-        - name: alerting-platform-logger
-          image: "{{ .Values.gcloud.registryURL }}/alerting-platform-logger:{{ .Values.env.VERSION }}"
-          imagePullPolicy: Always
+        - name: alerting-platform-notifier
+          image: "{{ .Values.gcloud.registryURL }}/alerting-platform-notifier:{{ .Values.env.VERSION }}"
+          imagePullPolicy: Always          
           env:
             - name: PROJECT_ID
               value: {{ .Values.gcloud.projectID | quote }}
-
+              
           {{- range $key, $value := .Values.env }}
             - name: {{ $key | quote }}
               value: {{ $value | required (print "Missing value: " $key) | quote }}
@@ -34,3 +34,15 @@ spec:
                   name: {{ $.Release.Name }}-secrets
                   key: {{ $key | quote }}
           {{- end }}
+
+            - name: API_HOST
+              value: {{ .Values.gcloud.publicAPIURL | quote }}
+            - name: REST_API_PORT
+              value: "80"
+          resources:
+              requests:
+                cpu: "10m"
+                memory: "20Mi"
+              limits:
+                cpu: "200m"
+                memory: "256Mi"

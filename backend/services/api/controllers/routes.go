@@ -34,12 +34,11 @@ func RegisterRoutes(r *gin.Engine, authMiddleware *jwt.GinJWTMiddleware) {
 	r.GET("/health", HealthCheckHandler)
 
 	v1 := r.Group("/api/v1")
-	public := r.Group("/public")
 
 	v1.POST("/login", authMiddleware.LoginHandler)
 	v1.POST("/refresh", authMiddleware.RefreshHandler)
 	v1.POST("/users", controller.RegisterUser)
-	public.GET("/incidents/resolve/:token", controller.ResolveIncident)
+	v1.GET("/incidents/resolve/:token", controller.ResolveIncident)
 
 	authenticated := v1.Group("/", authMiddleware.MiddlewareFunc())
 	{

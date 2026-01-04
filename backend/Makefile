@@ -38,11 +38,13 @@ build:
 	printf "$(GREEN) Building Docker images with version: $$VERSION$(RESET)\n"; \
 	$(call build_image,api,$$VERSION); \
 	$(call build_image,incident-manager,$$VERSION); \
-	$(call build_image,logger,$$VERSION)
+	$(call build_image,logger,$$VERSION); \
+	$(call build_image,notifier,$$VERSION)
 
 push:
 	@VERSION=$$(grep 'app_version' ../infra/terraform.tfvars | awk -F'"' '{print $$2}'); \
 	printf "$(GREEN) Pushing Docker images with version: $$VERSION$(RESET)\n"; \
 	$(call push_image,api,$$VERSION); \
 	$(call push_image,incident-manager,$$VERSION); \
-	$(call push_image,logger,$$VERSION)
+	$(call push_image,logger,$$VERSION); \
+	$(call push_image,notifier,$$VERSION)

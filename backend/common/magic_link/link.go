@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-const ResolveEndpointPath = "/public/incidents/resolve"
+const ResolveEndpointPath = "/api/v1/incidents/resolve"
 
 func GenerateResolveLink(incidentID string, serviceID uint64, email string, secretKey []byte, apiHost string, apiPort int) (string, error) {
 	token, err := GenerateToken(incidentID, serviceID, email, secretKey)

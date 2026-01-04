@@ -3,10 +3,13 @@ package main
 import (
 	"context"
 	"log"
-	"notifier/email"
 
 	"alerting-platform/common/pubsub"
 )
+
+type EmailSender interface {
+	SendNotification(toEmail string, incidentID string, serviceID uint64) error
+}
 
 var EventTypeToStatus = map[string]string{
 	pubsub.NotifyOncallerTopic: "NOTIFY",
@@ -16,7 +19,7 @@ func HandleMessage(
 	ctx context.Context,
 	msg pubsub.PubSubMessage,
 	eventType string,
-	mailer *email.Mailer,
+	mailer EmailSender,
 ) {
 	payload, _, err := pubsub.ExtractPayload(msg)
 	if err != nil {

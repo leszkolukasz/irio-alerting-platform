@@ -294,6 +294,10 @@ func (managerState *ManagerState) HandleExpiredDeadline(ctx context.Context, ser
 	err := redisClient.ZRem(ctx, oncallerDeadlineSetKey, serviceID).Err()
 
 	if err != nil {
+		if err == redis.Nil {
+			log.Printf("[WARNING] No ongoing incident found for service %d", serviceID)
+			return nil
+		}
 		return err
 	}
 
@@ -409,6 +413,10 @@ func (managerState *ManagerState) handleIncidentUnresolved(ctx context.Context, 
 	log.Printf("[DEBUG] Incident %s for service %d was not resolved in time", incidentID, serviceID)
 
 	if err != nil {
+		if err == redis.Nil {
+			log.Printf("[WARNING] No ongoing incident found for service %d", serviceID)
+			return nil
+		}
 		return err
 	}
 
@@ -447,11 +455,15 @@ func (managerState *ManagerState) handleIncidentResolved(ctx context.Context, se
 
 	incidentID, err := redisClient.HGet(ctx, incidentKey, "incident_id").Result()
 
-	log.Printf("[DEBUG] Incident %s for service %d was resolved in time by %s", incidentID, serviceID, oncaller)
-
 	if err != nil {
+		if err == redis.Nil {
+			log.Printf("[WARNING] No ongoing incident found for service %d", serviceID)
+			return nil
+		}
 		return err
 	}
+
+	log.Printf("[DEBUG] Incident %s for service %d was resolved in time by %s", incidentID, serviceID, oncaller)
 
 	pipe := redisClient.TxPipeline()
 

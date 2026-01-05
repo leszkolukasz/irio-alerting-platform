@@ -195,14 +195,18 @@ jobs:
         with:
           credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
 
+      - name: Setup gcloud CLI
+        uses: "google-github-actions/setup-gcloud@v2"
+        with:
+          install_components: "gke-gcloud-auth-plugin"
+
+      - name: Authenticate to GKE cluster
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: alerting-platform-gke
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
-
-      - name: Install GKE Auth Plugin
-        run: |
-          curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
-          echo “deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main” | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-          sudo apt-get install google-cloud-cli-gke-gcloud-auth-plugin
 
       - name: Terraform Apply (03-helm)
         run: |

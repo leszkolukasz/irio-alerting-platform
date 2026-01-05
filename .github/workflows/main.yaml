@@ -49,6 +49,7 @@ jobs:
       - name: Terraform Apply (01-bootstrap)
         run: |
           cd ${{ env.TF_BOOTSTRAP }}
+          echo ${{ env.BUCKET_NAME }}
           terraform init -backend-config="bucket=${{ env.BUCKET_NAME }}"
           terraform apply -auto-approve
 

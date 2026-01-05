@@ -38,9 +38,18 @@ data "google_sql_database_instance" "db_instance" {
   name = "alerting-platform-db"
 }
 
+data "google_sql_database" "api_db" {
+  name     = "alerting_platform_api"
+  instance = data.google_sql_database_instance.db_instance.name
+}
+
 data "google_artifact_registry_repository" "docker_registry" {
   location      = var.region
   repository_id = "docker-registry"
+}
+
+data "google_compute_global_address" "frontend_ip" {
+  name = "alerting-platform-frontend-ip"
 }
 
 data "google_compute_global_address" "backend_ip" {
@@ -49,9 +58,9 @@ data "google_compute_global_address" "backend_ip" {
 
 provider "helm" {
   kubernetes = {
-    host                   = "https://${google_container_cluster.gke.endpoint}"
+    host                   = "https://${data.google_container_cluster.gke.endpoint}"
     token                  = data.google_client_config.default.access_token
-    cluster_ca_certificate = base64decode(google_container_cluster.gke.master_auth[0].cluster_ca_certificate)
+    cluster_ca_certificate = base64decode(data.google_container_cluster.gke.master_auth[0].cluster_ca_certificate)
   }
 }
 
@@ -78,20 +87,24 @@ resource "helm_release" "alerting-platform" {
       value = var.build_time
     },
     {
+      name  = "env.FRONTEND_URL"
+      value = "http://${data.google_compute_global_address.frontend_ip.address}"
+    },
+    {
       name  = "env.POSTGRES_USER"
-      value = google_sql_user.db_user.name
+      value = var.db_user
     },
     {
       name  = "env.POSTGRES_DB"
-      value = google_sql_database.api_db.name
+      value = data.google_sql_database.api_db.name
     },
     {
       name  = "env.REDIS_HOST"
-      value = google_redis_instance.redis.host
+      value = data.google_redis_instance.redis.host
     },
     {
       name  = "env.REDIS_PORT"
-      value = google_redis_instance.redis.port
+      value = data.google_redis_instance.redis.port
     },
     {
       name  = "env.PROJECT_ID"
@@ -107,7 +120,7 @@ resource "helm_release" "alerting-platform" {
     },
     {
       name  = "gcloud.dbInstance"
-      value = google_sql_database_instance.db_instance.name
+      value = data.google_sql_database_instance.db_instance.name
     },
     {
       name  = "gcloud.registryURL"
@@ -135,7 +148,7 @@ resource "helm_release" "alerting-platform" {
     },
     {
       name  = "gcloud.publicAPIURL"
-      value = "http://${google_compute_global_address.backend_ip.address}"
+      value = "http://${data.google_compute_global_address.backend_ip.address}"
     }
   ]
 
@@ -147,11 +160,11 @@ resource "helm_release" "alerting-platform" {
     },
     {
       name  = "secrets.POSTGRES_PASSWORD"
-      value = google_sql_user.db_user.password
+      value = var.db_password
     },
     {
       name  = "secrets.REDIS_PASSWORD"
-      value = google_redis_instance.redis.auth_string
+      value = data.google_redis_instance.redis.auth_string
     },
     {
       name  = "secrets.SMTP_PASS"

@@ -26,16 +26,14 @@ resource "google_compute_backend_bucket" "static_assets_backend" {
   name        = "static-assets-backend"
   bucket_name = data.google_storage_bucket.static_assets.name
 
-  enable_cdn = true
-
-  # TODO: sprawdź ustawienia cdn
+  enable_cdn = false
 }
 
-resource "google_compute_global_address" "frontend_ip" {
+data "google_compute_global_address" "frontend_ip" {
   name = "alerting-platform-frontend-ip"
 }
 
-resource "google_compute_global_address" "backend_ip" {
+data "google_compute_global_address" "backend_ip" {
   name = "alerting-platform-backend-ip"
 }
 
@@ -56,7 +54,7 @@ resource "google_compute_global_forwarding_rule" "http_forwarding_rule" {
   port_range  = "80"
   ip_protocol = "TCP"
 
-  ip_address = google_compute_global_address.frontend_ip.address
+  ip_address = data.google_compute_global_address.frontend_ip.address
 }
 
 ## Database
@@ -102,6 +100,21 @@ resource "google_project_service" "sql_admin_api" {
   disable_on_destroy = false
 }
 
+resource "google_firestore_index" "metric_logs_composite" {
+  database   = var.firestore_db
+  collection = "metric_logs"
+
+  fields {
+    field_path = "monitored_service_id"
+    order      = "ASCENDING"
+  }
+
+  fields {
+    field_path = "timestamp"
+    order      = "ASCENDING"
+  }
+}
+
 resource "google_project_service" "firestore_api" {
   project = var.project_id
   service = "firestore.googleapis.com"
@@ -135,13 +148,14 @@ resource "google_container_node_pool" "primary_nodes" {
 
   node_count = 1
 
+  # In total there is num_zones * node_count nodes created
   autoscaling {
     min_node_count = 1
-    max_node_count = 1
+    max_node_count = 3
   }
 
   node_config {
-    machine_type = "e2-micro"
+    machine_type = "e2-small"
     spot         = true
 
     oauth_scopes = [

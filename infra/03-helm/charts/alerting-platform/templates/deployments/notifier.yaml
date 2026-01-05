@@ -36,6 +36,12 @@ spec:
               value: {{ .Values.gcloud.publicAPIURL | quote }}
             - name: REST_API_PORT
               value: "80"
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: {{ .Values.env.LIVE_PORT }}
+            initialDelaySeconds: 60
+            periodSeconds: 10
           resources:
               requests:
                 cpu: "10m"

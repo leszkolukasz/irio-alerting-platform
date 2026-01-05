@@ -41,3 +41,11 @@ resource "google_storage_bucket_iam_member" "public_bucket_access" {
   role   = "roles/storage.objectViewer"
   member = "allUsers"
 }
+
+resource "google_compute_global_address" "frontend_ip" {
+  name = "alerting-platform-frontend-ip"
+}
+
+resource "google_compute_global_address" "backend_ip" {
+  name = "alerting-platform-backend-ip"
+}

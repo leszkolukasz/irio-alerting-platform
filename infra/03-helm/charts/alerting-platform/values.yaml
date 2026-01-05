@@ -13,8 +13,10 @@ env:
   BUILD_TIME: null
   PROJECT_ID: null
   API_HOST: "alerting-platform-api"
+  FRONTEND_URL: null
   REST_API_PORT: 8080
   RPC_PORT: 9090
+  LIVE_PORT: 8080
   POSTGRES_HOST: "127.0.0.1"
   POSTGRES_PORT: 5432
   POSTGRES_USER: null
@@ -39,4 +41,11 @@ notifier:
     enabled: false
     minReplicas: 1
     maxReplicas: 3
+    targetCPUUtilizationPercentage: 70
+
+api:
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 10
     targetCPUUtilizationPercentage: 70

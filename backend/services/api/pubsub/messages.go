@@ -43,7 +43,7 @@ func (s *PubSubService) SendServiceCreatedMessage(ctx context.Context, service d
 		},
 	}
 
-	return pubsub_common.SendMessage(ctx, s.client, pubsub_common.ServiceCreatedTopic, payload, fmt.Sprintf("%d", service.ID))
+	return pubsub_common.SendPayload(ctx, s.client, pubsub_common.ServiceCreatedTopic, payload, fmt.Sprintf("%d", service.ID))
 }
 
 func (s *PubSubService) SendServiceUpdatedMessage(ctx context.Context, service db.MonitoredService) error {
@@ -65,7 +65,7 @@ func (s *PubSubService) SendServiceUpdatedMessage(ctx context.Context, service d
 		},
 	}
 
-	return pubsub_common.SendMessage(ctx, s.client, pubsub_common.ServiceModifiedTopic, payload, fmt.Sprintf("%d", service.ID))
+	return pubsub_common.SendPayload(ctx, s.client, pubsub_common.ServiceModifiedTopic, payload, fmt.Sprintf("%d", service.ID))
 }
 
 func (s *PubSubService) SendServiceDeletedMessage(ctx context.Context, serviceID uint64) error {
@@ -74,7 +74,7 @@ func (s *PubSubService) SendServiceDeletedMessage(ctx context.Context, serviceID
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 	}
 
-	return pubsub_common.SendMessage(ctx, s.client, pubsub_common.ServiceRemovedTopic, payload, fmt.Sprintf("%d", serviceID))
+	return pubsub_common.SendPayload(ctx, s.client, pubsub_common.ServiceRemovedTopic, payload, fmt.Sprintf("%d", serviceID))
 }
 
 func (s *PubSubService) SendOncallerAcknowledgedMessage(ctx context.Context, incidentID string, onCaller string) error {
@@ -84,5 +84,5 @@ func (s *PubSubService) SendOncallerAcknowledgedMessage(ctx context.Context, inc
 		Timestamp:  time.Now().UTC().Format(time.RFC3339),
 	}
 
-	return pubsub_common.SendMessage(ctx, s.client, pubsub_common.OncallerAcknowledgedTopic, payload, incidentID)
+	return pubsub_common.SendPayload(ctx, s.client, pubsub_common.OncallerAcknowledgedTopic, payload, incidentID)
 }

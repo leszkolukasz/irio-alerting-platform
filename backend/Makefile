@@ -1,4 +1,4 @@
-MODULES = ./common ./services/api ./services/incident-manager ./services/logger ./services/notifier
+MODULES = ./common ./services/api ./services/incident-manager ./services/logger ./services/notifier ./services/scheduler ./services/worker
 
 .PHONY: lint format
 
@@ -57,7 +57,9 @@ build:
 	$(call build_image,api,$$VERSION); \
 	$(call build_image,incident-manager,$$VERSION); \
 	$(call build_image,logger,$$VERSION); \
-	$(call build_image,notifier,$$VERSION)
+	$(call build_image,notifier,$$VERSION); \
+	$(call build_image,scheduler,$$VERSION); \
+	$(call build_image,worker,$$VERSION)
 
 push:
 	@VERSION=$$(grep 'app_version' ../infra/03-helm/terraform.tfvars | awk -F'"' '{print $$2}'); \
@@ -65,4 +67,6 @@ push:
 	$(call push_image,api,$$VERSION); \
 	$(call push_image,incident-manager,$$VERSION); \
 	$(call push_image,logger,$$VERSION); \
-	$(call push_image,notifier,$$VERSION)
+	$(call push_image,notifier,$$VERSION); \
+	$(call push_image,scheduler,$$VERSION); \
+	$(call push_image,worker,$$VERSION)

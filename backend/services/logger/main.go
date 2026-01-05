@@ -7,6 +7,7 @@ import (
 
 	"alerting-platform/common/config"
 	firestore "alerting-platform/common/db/firestore"
+	"alerting-platform/common/live"
 	pubsub_common "alerting-platform/common/pubsub"
 )
 
@@ -36,6 +37,8 @@ func main() {
 	pubsub_common.CreateSubscriptionsAndTopics(psClient, subscriptions, []string{})
 
 	var wg sync.WaitGroup
+
+	live.StartLiveServer(&wg)
 	pubsub_common.SetupSubscriptionListeners(ctx, psClient, subscriptions, &wg,
 		func(ctx context.Context, msg pubsub_common.PubSubMessage, eventType string) {
 			HandleMessage(ctx, msg, eventType, repo)

@@ -12,7 +12,7 @@ func GetAllServicesInfo(ctx context.Context) *rpc.ServicesInfoForIncident {
 	rpcClient := GetIncidentManagerServiceClient()
 	servicesInfo, err := rpcClient.GetAllServicesInfo(ctx, &emptypb.Empty{})
 	if err != nil {
-		log.Fatalf("Failed to get services info from Incident Manager: %v", err)
+		log.Fatalf("[FATAL] Failed to get services info from Incident Manager: %v", err)
 	}
 	return servicesInfo
 }

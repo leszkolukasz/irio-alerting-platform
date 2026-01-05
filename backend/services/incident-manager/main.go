@@ -5,6 +5,7 @@ import (
 	redis_keys "alerting-plafform/incident-manager/redis"
 	"alerting-platform/common/config"
 	"alerting-platform/common/db"
+	"alerting-platform/common/live"
 	"context"
 	"log"
 	"strconv"
@@ -29,13 +30,13 @@ func main() {
 
 	var wg sync.WaitGroup
 
+	live.StartLiveServer(&wg)
 	StartPubSubListener(ctx, &wg, psClient, managerState)
 	StartIncidentManager(ctx, managerState)
 
 	log.Println("[INFO] Incident Manager service is running...")
 
 	wg.Wait()
-
 }
 
 func StartPubSubListener(ctx context.Context, wg *sync.WaitGroup, psClient *pubsub.Client, managerState *internal.ManagerState) {

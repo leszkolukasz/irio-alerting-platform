@@ -17,7 +17,9 @@ type Config struct {
 	BuildTime        string `env:"BUILD_TIME" envDefault:"unknown"`
 	Secret           string `env:"SECRET,required"`
 	APIHost          string `env:"API_HOST" envDefault:"localhost"`
+	FrontendURL      string `env:"FRONTEND_URL" envDefault:"localhost"`
 	REST_APIPort     int    `env:"REST_API_PORT" envDefault:"8080"`
+	LivePort         int    `env:"LIVE_PORT" envDefault:"8080"`
 	RPCPort          int    `env:"RPC_PORT" envDefault:"9090"`
 	PostgresHost     string `env:"POSTGRES_HOST,required"`
 	PostgresPort     string `env:"POSTGRES_PORT,required"`

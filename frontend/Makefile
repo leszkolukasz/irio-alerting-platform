@@ -6,12 +6,19 @@ lint:
 format:
 	@pnpm format
 
-build:
-	@pnpm build
-
 define get_bucket_name
     cd ../infra/01-bootstrap && terraform output -raw bucket_name
 endef
+
+define get_backend_ip
+	cd ../infra/01-bootstrap && terraform output -raw backend_ip_address
+endef
+
+build:
+	@BACKEND_IP_VAR=$$($(call get_backend_ip)); \
+	echo "Using BACKEND_IP: $$BACKEND_IP_VAR"; \
+	export BACKEND_IP=$$BACKEND_IP_VAR; \
+	pnpm build
 
 push:
 	@TARGET_BUCKET=$$($(call get_bucket_name)); \

@@ -27,6 +27,15 @@ variable "build_time" {
   default = "2026-01-01T00:00:00Z"
 }
 
+variable "db_user" {
+  type = string
+}
+
+variable "db_password" {
+  type      = string
+  sensitive = true
+}
+
 variable "smtp_host" {
   type = string
 }

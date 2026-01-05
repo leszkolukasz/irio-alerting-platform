@@ -20,6 +20,7 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: {{ .Values.env.REST_API_PORT }}
+            - containerPort: {{ .Values.env.RPC_PORT }}
           env:
           {{- range $key, $value := .Values.env }}
             - name: {{ $key | quote }}
@@ -36,8 +37,22 @@ spec:
             httpGet:
               path: /health
               port: {{ .Values.env.REST_API_PORT }}
-            initialDelaySeconds: 30
-            periodSeconds: 5
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: {{ .Values.env.LIVE_PORT }}
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          resources:
+              requests:
+                cpu: "20m"
+                memory: "64Mi"
+              limits:
+                cpu: "500m"
+                memory: "256Mi"
+
         - name: cloud-sql-proxy
           image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.20.0
           args:

@@ -8,6 +8,7 @@ import (
 
 	db_util "alerting-platform/common/db"
 	"alerting-platform/common/db/firestore"
+	"alerting-platform/common/live"
 
 	"alerting-platform/api/pubsub"
 	pubsub_common "alerting-platform/common/pubsub"
@@ -32,6 +33,7 @@ func RegisterRoutes(r *gin.Engine, authMiddleware *jwt.GinJWTMiddleware) {
 	r.NoRoute(NoRouteHandler())
 
 	r.GET("/health", HealthCheckHandler)
+	r.GET("/live", gin.WrapF(live.LiveHandler))
 
 	v1 := r.Group("/api/v1")
 

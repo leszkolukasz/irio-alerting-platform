@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: alerting-platform-incident-manager
+  name: alerting-platform-scheduler
   labels:
-    app: alerting-platform-incident-manager
+    app: alerting-platform-scheduler
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: alerting-platform-incident-manager
+      app: alerting-platform-scheduler
   template:
     metadata:
       labels:
-        app: alerting-platform-incident-manager
+        app: alerting-platform-scheduler
     spec:
       containers:
-        - name: alerting-platform-incident-manager
-          image: "{{ .Values.gcloud.registryURL }}/alerting-platform-incident-manager:{{ .Values.env.VERSION }}"
+        - name: alerting-platform-scheduler
+          image: "{{ .Values.gcloud.registryURL }}/alerting-platform-scheduler:{{ .Values.env.VERSION }}"
           imagePullPolicy: Always
           env:
           {{- range $key, $value := .Values.env }}

@@ -145,3 +145,10 @@ resource "google_pubsub_subscription" "notifier_notify_oncaller" {
 
   enable_message_ordering = true
 }
+
+resource "google_pubsub_subscription" "worker-execute-health-check" {
+  name  = "worker-execute-health-check"
+  topic = google_pubsub_topic.execute_health_check.name
+
+  enable_message_ordering = true
+}

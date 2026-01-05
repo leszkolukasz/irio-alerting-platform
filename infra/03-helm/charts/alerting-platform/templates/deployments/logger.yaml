@@ -31,3 +31,9 @@ spec:
                   name: {{ $.Release.Name }}-secrets
                   key: {{ $key | quote }}
           {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: {{ .Values.env.LIVE_PORT }}
+            initialDelaySeconds: 60
+            periodSeconds: 10

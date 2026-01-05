@@ -49,7 +49,7 @@ func ExtractPayload(msg PubSubMessage) (*PubSubPayload, *time.Time, error) {
 	return &payload, &eventTime, nil
 }
 
-func SendMessage(ctx context.Context, psClient *pubsub.Client, topicID string, payload PubSubPayload, orderingKey string) error {
+func SendPayload(ctx context.Context, psClient *pubsub.Client, topicID string, payload PubSubPayload, orderingKey string) error {
 	topic := psClient.Topic(topicID)
 	topic.EnableMessageOrdering = true
 
@@ -58,12 +58,19 @@ func SendMessage(ctx context.Context, psClient *pubsub.Client, topicID string, p
 		return fmt.Errorf("[Error] Failed to marshal payload: %w", err)
 	}
 
+	return SendMessage(ctx, psClient, topicID, data, orderingKey)
+}
+
+func SendMessage(ctx context.Context, psClient *pubsub.Client, topicID string, data []byte, orderingKey string) error {
+	topic := psClient.Topic(topicID)
+	topic.EnableMessageOrdering = true
+
 	result := topic.Publish(ctx, &pubsub.Message{
 		Data:        data,
 		OrderingKey: orderingKey,
 	})
 
-	_, err = result.Get(ctx)
+	_, err := result.Get(ctx)
 
 	if err != nil {
 		return fmt.Errorf("[Error] Failed to publish message to topic %s: %w", topicID, err)

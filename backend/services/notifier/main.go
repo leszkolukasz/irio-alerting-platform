@@ -2,6 +2,7 @@ package main
 
 import (
 	"alerting-platform/common/config"
+	"alerting-platform/common/live"
 	pubsub_common "alerting-platform/common/pubsub"
 	"context"
 	"log"
@@ -32,6 +33,8 @@ func main() {
 	pubsub_common.CreateSubscriptionsAndTopics(psClient, subscriptions, []string{})
 
 	var wg sync.WaitGroup
+
+	live.StartLiveServer(&wg)
 	pubsub_common.SetupSubscriptionListeners(ctx, psClient, subscriptions, &wg,
 		func(ctx context.Context, msg pubsub_common.PubSubMessage, eventType string) {
 			HandleMessage(ctx, msg, eventType, mailer)

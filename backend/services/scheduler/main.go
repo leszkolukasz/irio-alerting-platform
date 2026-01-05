@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"alerting-platform/common/config"
+	"alerting-platform/common/live"
+	pubsub_common "alerting-platform/common/pubsub"
 	"alerting-platform/common/rpc"
 
 	"cloud.google.com/go/pubsub"
@@ -76,12 +78,7 @@ func (s *scheduler) scheduleMonitor(ctx context.Context, service *rpc.ServiceInf
 					continue
 				}
 
-				result := s.incidentTopic.Publish(ctx,
-					&pubsub.Message{
-						Data: data,
-					},
-				)
-				_, err = result.Get(ctx)
+				err = pubsub_common.SendMessage(goRoutineCtx, s.pubsubClient, pubsub_common.ExecuteHealthCheckTopic, data, fmt.Sprintf("%d", serviceId))
 
 				if err != nil {
 					log.Printf("Error could not write monitoringTask to the broker: %v\n", err)
@@ -93,9 +90,9 @@ func (s *scheduler) scheduleMonitor(ctx context.Context, service *rpc.ServiceInf
 }
 
 func main() {
+	config.Intro("Scheduler")
 	cfg := config.GetConfig()
 
-	fmt.Println("Scheduler Service is starting...")
 	fmt.Printf("Config loaded. Project ID: %s\n", cfg.ProjectID)
 	addr := fmt.Sprintf("%s:%d", cfg.APIHost, cfg.RPCPort)
 	fmt.Printf("Connection to API at %s\n", addr)
@@ -127,13 +124,11 @@ func main() {
 
 	fmt.Printf("Success, recived %d configurations\n", len(resp.Services))
 
-	topicName := "execute-health-check"
-
 	sched := &scheduler{
 		activeTasks:   make(map[uint64]*Task),
 		client:        client,
 		pubsubClient:  pubsubClient,
-		incidentTopic: pubsubClient.Topic(topicName),
+		incidentTopic: pubsubClient.Topic(pubsub_common.ExecuteHealthCheckTopic),
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -143,6 +138,10 @@ func main() {
 		sched.scheduleMonitor(ctx, service)
 	}
 
+	wg := sync.WaitGroup{}
+	live.StartLiveServer(&wg)
+
 	// its waiting for a ctrl+c signal
 	<-ctx.Done()
+	wg.Done()
 }

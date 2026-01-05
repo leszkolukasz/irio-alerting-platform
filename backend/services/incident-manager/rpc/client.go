@@ -23,7 +23,7 @@ func GetClient() *grpc.ClientConn {
 		conn, err := grpc.NewClient(url, grpc.WithTransportCredentials(insecure.NewCredentials()))
 
 		if err != nil {
-			log.Fatalf("Failed to connect to Incident Manager RPC server: %v", err)
+			log.Fatalf("[FATAL] Failed to connect to Incident Manager RPC server: %v", err)
 		}
 		rpcClient = conn
 	})

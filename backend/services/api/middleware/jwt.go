@@ -31,12 +31,13 @@ func GetJWTMiddleware() *jwt.GinJWTMiddleware {
 		PayloadFunc:     payloadFunc(),
 	}
 
-	middleware.EnableRedisStore(
-		jwt.WithRedisAddr(config.GetConfig().RedisHost+":"+config.GetConfig().RedisPort),
-		jwt.WithRedisAuth(config.GetConfig().RedisPassword, config.GetConfig().RedisDB),
-		jwt.WithRedisCache(128*1024*1024, time.Minute), // 128MB
-		jwt.WithRedisKeyPrefix(config.GetConfig().RedisPrefix+":jwt:"),
-	)
+	// Causes: ClientOption.DisableCache must be true for redis not supporting client-side caching or not supporting RESP3, falling back to in-memory store
+	// middleware.EnableRedisStore(
+	// 	jwt.WithRedisAddr(config.GetConfig().RedisHost+":"+config.GetConfig().RedisPort),
+	// 	jwt.WithRedisAuth(config.GetConfig().RedisPassword, config.GetConfig().RedisDB),
+	// 	jwt.WithRedisCache(128*1024*1024, time.Minute), // 128MB
+	// 	jwt.WithRedisKeyPrefix(config.GetConfig().RedisPrefix+":jwt:"),
+	// )
 
 	middleware, err := jwt.New(middleware)
 	if err != nil {

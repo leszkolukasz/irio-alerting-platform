@@ -2,12 +2,14 @@ package main
 
 import (
 	"alerting-platform/common/config"
+	"alerting-platform/common/live"
 	pubsub_common "alerting-platform/common/pubsub"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	"cloud.google.com/go/pubsub"
@@ -38,11 +40,10 @@ func main() {
 
 	log.Println("Worker service is running and connected to Pub/Sub ...")
 
-	topicName := "execute-health-check"
 	subName := "worker-execute-health-check"
 
 	subscriptions := map[string]string{
-		subName: topicName,
+		subName: pubsub_common.ExecuteHealthCheckTopic,
 	}
 
 	pubsub_common.CreateSubscriptionsAndTopics(pubsubClient, subscriptions, nil)
@@ -54,6 +55,9 @@ func main() {
 	sub.ReceiveSettings.MaxOutstandingMessages = 10
 
 	log.Printf("Worker listening on subscription %s ...", subName)
+
+	wg := sync.WaitGroup{}
+	live.StartLiveServer(&wg)
 
 	err := sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
 		var task pubsub_common.MonitoringTask
@@ -76,7 +80,7 @@ func main() {
 			Timestamp: time.Now().UTC().Format(time.RFC3339),
 		}
 
-		err := pubsub_common.SendMessage(ctx, pubsubClient, resultTopic, payload, fmt.Sprintf("%d", task.ServiceID))
+		err := pubsub_common.SendPayload(ctx, pubsubClient, resultTopic, payload, fmt.Sprintf("%d", task.ServiceID))
 		if err != nil {
 			log.Printf("Failed to publish result to %s: %v", resultTopic, err)
 			msg.Nack()
@@ -90,4 +94,5 @@ func main() {
 		log.Fatalf("Receiver failed: %v", err)
 	}
 
+	wg.Wait()
 }

@@ -12,4 +12,5 @@ const (
 	IncidentUnresolvedTopic         = "incident-unresolved"
 	NotifyOncallerTopic             = "notify-oncaller"
 	OncallerAcknowledgedTopic       = "oncaller-acknowledged"
+	ExecuteHealthCheckTopic         = "execute-health-check"
 )

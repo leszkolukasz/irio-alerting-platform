@@ -11,3 +11,7 @@ spec:
   ports:
     - port: {{ .Values.env.REST_API_PORT }}
       targetPort: {{ .Values.env.REST_API_PORT }}
+      name: rest-api
+    - port: {{ .Values.env.RPC_PORT }}
+      targetPort: {{ .Values.env.RPC_PORT }}
+      name: rpc

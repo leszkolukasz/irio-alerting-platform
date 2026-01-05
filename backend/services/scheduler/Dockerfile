@@ -14,16 +14,18 @@ COPY services/worker/go.mod services/worker/go.sum ./services/worker/
 RUN go mod download
 
 COPY common/ ./common/
-COPY services/logger/ ./services/logger/
+COPY services/scheduler/ ./services/scheduler/
 
-WORKDIR /app/services/logger
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/logger .
+WORKDIR /app/services/scheduler
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/scheduler ./main.go
 
 FROM alpine:latest
 
 WORKDIR /root/
 
-COPY --from=builder /app/logger .
-COPY --from=builder /app/services/logger/.env .
+COPY --from=builder /app/scheduler .
+COPY --from=builder /app/services/scheduler/.env .
 
-CMD ["./logger"]
+EXPOSE 8080
+
+CMD ["./scheduler"]

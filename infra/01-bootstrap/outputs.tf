@@ -5,3 +5,11 @@ output "registry_url" {
 output "bucket_name" {
   value = google_storage_bucket.static_assets.name
 }
+
+output "frontend_ip_address" {
+  value = google_compute_global_address.frontend_ip.address
+}
+
+output "backend_ip_address" {
+  value = google_compute_global_address.backend_ip.address
+}

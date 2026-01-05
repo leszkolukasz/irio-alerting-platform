@@ -35,7 +35,7 @@ func (ps *PubSubService) SendIncidentStartMessage(ctx context.Context, incidentI
 	payload.ServiceID = serviceID
 	payload.Timestamp = timestamp.Format(time.RFC3339)
 
-	return pubsub_common.SendMessage(ctx, ps.client, pubsub_common.IncidentStartTopic, payload, incidentID)
+	return pubsub_common.SendPayload(ctx, ps.client, pubsub_common.IncidentStartTopic, payload, incidentID)
 }
 
 func (ps *PubSubService) SendAcknowledgeTimeoutMessage(ctx context.Context, incidentID string, serviceID uint64, oncaller string, timestamp time.Time) error {
@@ -48,7 +48,7 @@ func (ps *PubSubService) SendAcknowledgeTimeoutMessage(ctx context.Context, inci
 	payload.OnCaller = oncaller
 	payload.Timestamp = timestamp.Format(time.RFC3339)
 
-	return pubsub_common.SendMessage(ctx, ps.client, pubsub_common.IncidentAcknowledgeTimeoutTopic, payload, incidentID)
+	return pubsub_common.SendPayload(ctx, ps.client, pubsub_common.IncidentAcknowledgeTimeoutTopic, payload, incidentID)
 }
 
 func (ps *PubSubService) SendNotifyOncallerMessage(ctx context.Context, incidentID string, serviceID uint64, oncaller string, timestamp time.Time) error {
@@ -61,7 +61,7 @@ func (ps *PubSubService) SendNotifyOncallerMessage(ctx context.Context, incident
 	payload.OnCaller = oncaller
 	payload.Timestamp = timestamp.Format(time.RFC3339)
 
-	return pubsub_common.SendMessage(ctx, ps.client, pubsub_common.NotifyOncallerTopic, payload, incidentID)
+	return pubsub_common.SendPayload(ctx, ps.client, pubsub_common.NotifyOncallerTopic, payload, incidentID)
 }
 
 func (ps *PubSubService) SendIncidentUnresolvedMessage(ctx context.Context, incidentID string, serviceID uint64, timestamp time.Time) error {
@@ -73,7 +73,7 @@ func (ps *PubSubService) SendIncidentUnresolvedMessage(ctx context.Context, inci
 	payload.ServiceID = serviceID
 	payload.Timestamp = timestamp.Format(time.RFC3339)
 
-	return pubsub_common.SendMessage(ctx, ps.client, pubsub_common.IncidentUnresolvedTopic, payload, incidentID)
+	return pubsub_common.SendPayload(ctx, ps.client, pubsub_common.IncidentUnresolvedTopic, payload, incidentID)
 }
 
 func (ps *PubSubService) SendIncidentResolvedMessage(ctx context.Context, incidentID string, serviceID uint64, oncaller string, timestamp time.Time) error {
@@ -86,5 +86,5 @@ func (ps *PubSubService) SendIncidentResolvedMessage(ctx context.Context, incide
 	payload.OnCaller = oncaller
 	payload.Timestamp = timestamp.Format(time.RFC3339)
 
-	return pubsub_common.SendMessage(ctx, ps.client, pubsub_common.IncidentResolvedTopic, payload, incidentID)
+	return pubsub_common.SendPayload(ctx, ps.client, pubsub_common.IncidentResolvedTopic, payload, incidentID)
 }

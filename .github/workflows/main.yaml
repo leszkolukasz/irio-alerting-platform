@@ -49,7 +49,8 @@ jobs:
       - name: Terraform Apply (01-bootstrap)
         run: |
           cd ${{ env.TF_BOOTSTRAP }}
-          terraform init -backend-config="bucket=${{ env.BUCKET_NAME }}"
+          echo ${{ env.BUCKET_NAME }}
+          terraform init -backend-config="bucket=${{ vars.BUCKET_NAME }}"
           terraform apply -auto-approve
 
   create-infra:
@@ -70,13 +71,44 @@ jobs:
       - name: Terraform Apply (02-infra)
         run: |
           cd ${{ env.TF_INFRA }}
-          terraform init -backend-config="bucket=${{ env.BUCKET_NAME }}"
+          terraform init -backend-config="bucket=${{ vars.BUCKET_NAME }}"
           terraform apply -auto-approve
 
-  backend-ci:
-    name: "Backend"
-    needs: bootstrap
+  backend-lint-test:
+    name: "Backend Check ${{ matrix.service }}"
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          [common, api, incident-manager, logger, notifier, scheduler, worker]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: Install Lint Tool
+        run: curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.7.2
+
+      - name: Lint ${{ matrix.service }}
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: make lint-service SERVICE=${{ matrix.service }}
+
+      - name: Test ${{ matrix.service }}
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: make test-service SERVICE=${{ matrix.service }}
+
+  backend-build-push:
+    name: "Backend Build & Push ${{ matrix.service }}"
+    needs: [bootstrap, backend-lint-test]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [api, incident-manager, logger, notifier, scheduler, worker]
     steps:
       - uses: actions/checkout@v4
 
@@ -90,9 +122,6 @@ jobs:
         with:
           go-version: "1.25"
 
-      - name: Install Lint Tool
-        run: curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.7.2
-
       - name: Configure Docker Auth
         run: gcloud auth configure-docker europe-west1-docker.pkg.dev
 
@@ -100,23 +129,15 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         # with:
         #   terraform_wrapper: false
-      - run: cd ${{ env.TF_BOOTSTRAP }} && terraform init -backend-config="bucket=${{ env.BUCKET_NAME }}"
+      - run: cd ${{ env.TF_BOOTSTRAP }} && terraform init -backend-config="bucket=${{ vars.BUCKET_NAME }}"
 
-      - name: Lint Backend
+      - name: Build Image
         working-directory: ${{ env.BACKEND_DIR }}
-        run: make lint
+        run: make build-service SERVICE=${{ matrix.service }}
 
-      - name: Test Backend
+      - name: Push Image
         working-directory: ${{ env.BACKEND_DIR }}
-        run: make test
-
-      - name: Build Images
-        working-directory: ${{ env.BACKEND_DIR }}
-        run: make build
-
-      - name: Push Images
-        working-directory: ${{ env.BACKEND_DIR }}
-        run: make push
+        run: make push-service SERVICE=${{ matrix.service }}
 
   frontend-ci:
     name: "Frontend"
@@ -144,7 +165,7 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         # with:
         #   terraform_wrapper: false
-      - run: cd ${{ env.TF_BOOTSTRAP }} && terraform init -backend-config="bucket=${{ env.BUCKET_NAME }}"
+      - run: cd ${{ env.TF_BOOTSTRAP }} && terraform init -backend-config="bucket=${{ vars.BUCKET_NAME }}"
 
       - name: Install Deps
         working-directory: ${{ env.FRONTEND_DIR }}
@@ -160,11 +181,11 @@ jobs:
 
       - name: Deploy to GCS
         working-directory: ${{ env.FRONTEND_DIR }}
-        run: make deploy
+        run: make push
 
   deploy-helm:
     name: "Deploy Helm Releases"
-    needs: [create-infra, backend-ci]
+    needs: [create-infra, backend-build-push]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -174,14 +195,22 @@ jobs:
         with:
           credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
 
+      - name: Setup gcloud CLI
+        uses: "google-github-actions/setup-gcloud@v2"
+        with:
+          install_components: "gke-gcloud-auth-plugin"
+
+      - name: Authenticate to GKE cluster
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: alerting-platform-gke
+          location: europe-west1
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
-
-      - name: Install GKE Auth Plugin
-        run: gcloud components install gke-gcloud-auth-plugin
 
       - name: Terraform Apply (03-helm)
         run: |
           cd ${{ env.TF_HELM }}
-          terraform init -backend-config="bucket=${{ env.BUCKET_NAME }}"
+          terraform init -backend-config="bucket=${{ vars.BUCKET_NAME }}"
           terraform apply -auto-approve

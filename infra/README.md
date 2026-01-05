@@ -11,3 +11,13 @@ then initialize each terraform directory with:
 ```bash
 terraform init -backend-config="bucket=${BUCKET_NAME}"
 ```
+
+### Note:
+
+Service account may need this role to manage Firestore:
+
+```bash
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="serviceAccount:$SA_EMAIL" \
+    --role="roles/datastore.owner"
+```

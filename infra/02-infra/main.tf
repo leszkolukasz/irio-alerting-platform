@@ -84,7 +84,6 @@ resource "google_sql_database" "api_db" {
 
 ### Firestore
 resource "google_firestore_database" "firestore_db" {
-  project     = var.project_id
   name        = var.firestore_db
   location_id = var.region
   type        = "FIRESTORE_NATIVE"
@@ -113,13 +112,8 @@ resource "google_firestore_index" "metric_logs_composite" {
     field_path = "timestamp"
     order      = "ASCENDING"
   }
-}
 
-resource "google_project_service" "firestore_api" {
-  project = var.project_id
-  service = "firestore.googleapis.com"
-
-  disable_on_destroy = false
+  depends_on = [google_firestore_database.firestore_db]
 }
 
 resource "google_redis_instance" "redis" {

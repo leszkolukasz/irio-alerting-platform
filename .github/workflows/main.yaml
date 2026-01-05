@@ -50,7 +50,7 @@ jobs:
         run: |
           cd ${{ env.TF_BOOTSTRAP }}
           echo ${{ env.BUCKET_NAME }}
-          terraform init -backend-config="bucket=${{ env.BUCKET_NAME }}"
+          terraform init -backend-config="bucket=${{ vars.BUCKET_NAME }}"
           terraform apply -auto-approve
 
   create-infra:
@@ -71,7 +71,7 @@ jobs:
       - name: Terraform Apply (02-infra)
         run: |
           cd ${{ env.TF_INFRA }}
-          terraform init -backend-config="bucket=${{ env.BUCKET_NAME }}"
+          terraform init -backend-config="bucket=${{ vars.BUCKET_NAME }}"
           terraform apply -auto-approve
 
   backend-ci:
@@ -101,7 +101,7 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         # with:
         #   terraform_wrapper: false
-      - run: cd ${{ env.TF_BOOTSTRAP }} && terraform init -backend-config="bucket=${{ env.BUCKET_NAME }}"
+      - run: cd ${{ env.TF_BOOTSTRAP }} && terraform init -backend-config="bucket=${{ vars.BUCKET_NAME }}"
 
       - name: Lint Backend
         working-directory: ${{ env.BACKEND_DIR }}
@@ -145,7 +145,7 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         # with:
         #   terraform_wrapper: false
-      - run: cd ${{ env.TF_BOOTSTRAP }} && terraform init -backend-config="bucket=${{ env.BUCKET_NAME }}"
+      - run: cd ${{ env.TF_BOOTSTRAP }} && terraform init -backend-config="bucket=${{ vars.BUCKET_NAME }}"
 
       - name: Install Deps
         working-directory: ${{ env.FRONTEND_DIR }}
@@ -184,5 +184,5 @@ jobs:
       - name: Terraform Apply (03-helm)
         run: |
           cd ${{ env.TF_HELM }}
-          terraform init -backend-config="bucket=${{ env.BUCKET_NAME }}"
+          terraform init -backend-config="bucket=${{ vars.BUCKET_NAME }}"
           terraform apply -auto-approve

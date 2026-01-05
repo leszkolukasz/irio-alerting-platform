@@ -1,7 +1,9 @@
 package config
 
 import (
+	"flag"
 	"log"
+	"os"
 	"sync"
 
 	"github.com/caarlos0/env/v11"
@@ -45,9 +47,30 @@ var (
 	once sync.Once
 )
 
+func IsTesting() bool {
+	return flag.Lookup("test.v") != nil
+}
+
+func SetTestEnv() {
+	os.Setenv("SECRET", "secret")
+	os.Setenv("POSTGRES_HOST", "localhost")
+	os.Setenv("POSTGRES_PORT", "5432")
+	os.Setenv("POSTGRES_DB", "testdb")
+	os.Setenv("POSTGRES_USER", "testuser")
+	os.Setenv("POSTGRES_PASSWORD", "testpass")
+	os.Setenv("REDIS_HOST", "localhost")
+	os.Setenv("REDIS_PORT", "6379")
+	os.Setenv("REDIS_PASSWORD", "")
+	os.Setenv("PROJECT_ID", "test-project")
+}
+
 func GetConfig() *Config {
 	once.Do(func() {
 		_ = godotenv.Load()
+
+		if IsTesting() {
+			SetTestEnv()
+		}
 
 		cfg = &Config{}
 		err := env.Parse(cfg)

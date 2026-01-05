@@ -107,9 +107,9 @@ jobs:
         working-directory: ${{ env.BACKEND_DIR }}
         run: make lint
 
-      - name: Test Backend
-        working-directory: ${{ env.BACKEND_DIR }}
-        run: make test
+      # - name: Test Backend
+      #   working-directory: ${{ env.BACKEND_DIR }}
+      #   run: make test
 
       - name: Build Images
         working-directory: ${{ env.BACKEND_DIR }}

@@ -199,7 +199,7 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: Install GKE Auth Plugin
-        run: gcloud components install gke-gcloud-auth-plugin
+        run: sudo apt-get install google-cloud-cli-gke-gcloud-auth-plugin
 
       - name: Terraform Apply (03-helm)
         run: |

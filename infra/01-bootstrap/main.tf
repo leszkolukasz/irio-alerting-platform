@@ -49,3 +49,30 @@ resource "google_compute_global_address" "frontend_ip" {
 resource "google_compute_global_address" "backend_ip" {
   name = "alerting-platform-backend-ip"
 }
+
+# Enable APIs
+
+resource "google_project_service" "cloudresourcemanager" {
+  project = var.project_id
+  service = "cloudresourcemanager.googleapis.com"
+
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "serviceusage" {
+  project            = var.project_id
+  service            = "serviceusage.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "firestore" {
+  project = var.project_id
+  service = "firestore.googleapis.com"
+
+  disable_on_destroy = false
+
+  depends_on = [
+    google_project_service.cloudresourcemanager,
+    google_project_service.serviceusage
+  ]
+}

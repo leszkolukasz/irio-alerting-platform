@@ -115,13 +115,6 @@ resource "google_firestore_index" "metric_logs_composite" {
   }
 }
 
-resource "google_project_service" "firestore_api" {
-  project = var.project_id
-  service = "firestore.googleapis.com"
-
-  disable_on_destroy = false
-}
-
 resource "google_redis_instance" "redis" {
   name = "alerting-platform-redis"
   tier = "BASIC"

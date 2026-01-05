@@ -204,6 +204,7 @@ jobs:
         uses: google-github-actions/get-gke-credentials@v2
         with:
           cluster_name: alerting-platform-gke
+          location: erope-west1
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3

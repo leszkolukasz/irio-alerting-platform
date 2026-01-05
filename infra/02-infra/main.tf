@@ -113,7 +113,7 @@ resource "google_firestore_index" "metric_logs_composite" {
     order      = "ASCENDING"
   }
 
-  depends_on = [google_project_service.firestore]
+  depends_on = [google_firestore_database.firestore_db]
 }
 
 resource "google_redis_instance" "redis" {

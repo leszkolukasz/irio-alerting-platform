@@ -12,13 +12,14 @@ func GetCORSMiddleware() gin.HandlerFunc {
 
 	corsConfig.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization"}
 	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
+	corsConfig.AllowCredentials = true
 
 	if config.GetConfig().Env == config.DEV {
 		corsConfig.AllowAllOrigins = true
 		return cors.New(corsConfig)
 	}
 
-	corsConfig.AllowOrigins = []string{config.GetConfig().FrontendURL}
+	corsConfig.AllowOrigins = []string{config.GetConfig().FrontendURL, "https://alerting-platform.leszko.dev"}
 
 	return cors.New(corsConfig)
 }

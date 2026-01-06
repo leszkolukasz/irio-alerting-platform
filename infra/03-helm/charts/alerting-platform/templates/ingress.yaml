@@ -5,9 +5,12 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: "gce"
     kubernetes.io/ingress.global-static-ip-name: "alerting-platform-backend-ip"
+    networking.gke.io/managed-certificates: "backend-cert"
+    kubernetes.io/ingress.allow-http: "false"
 spec:
   rules:
-    - http:
+    - host: api.alerting-platform.leszko.dev
+      http:
         paths:
           - path: /api/*
             pathType: ImplementationSpecific

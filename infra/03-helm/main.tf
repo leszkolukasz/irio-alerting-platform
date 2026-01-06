@@ -145,10 +145,6 @@ resource "helm_release" "alerting-platform" {
     {
       name  = "env.EMAIL_FROM"
       value = var.email_from
-    },
-    {
-      name  = "gcloud.publicAPIURL"
-      value = "http://${data.google_compute_global_address.backend_ip.address}"
     }
   ]
 

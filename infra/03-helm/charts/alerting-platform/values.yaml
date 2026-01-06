@@ -5,7 +5,7 @@ gcloud:
   region: null
   dbInstance: null
   registryURL: null
-  publicAPIURL: null
+  publicAPIURL: "https://api.alerting-platform.leszko.dev"
 
 env:
   ENV: "prod"

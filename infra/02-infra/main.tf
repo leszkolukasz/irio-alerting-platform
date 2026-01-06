@@ -43,9 +43,23 @@ resource "google_compute_url_map" "url_map" {
   default_service = google_compute_backend_bucket.static_assets_backend.id
 }
 
+resource "google_compute_managed_ssl_certificate" "frontend_cert" {
+  name = "frontend-cert"
+
+  managed {
+    domains = ["alerting-platform.leszko.dev"]
+  }
+}
+
 resource "google_compute_target_http_proxy" "http_proxy" {
   name    = "alerting-platform-http-proxy"
   url_map = google_compute_url_map.url_map.id
+}
+
+resource "google_compute_target_https_proxy" "https_proxy" {
+  name             = "alerting-platform-https-proxy"
+  url_map          = google_compute_url_map.url_map.id
+  ssl_certificates = [google_compute_managed_ssl_certificate.frontend_cert.id]
 }
 
 resource "google_compute_global_forwarding_rule" "http_forwarding_rule" {
@@ -55,6 +69,14 @@ resource "google_compute_global_forwarding_rule" "http_forwarding_rule" {
   ip_protocol = "TCP"
 
   ip_address = data.google_compute_global_address.frontend_ip.address
+}
+
+resource "google_compute_global_forwarding_rule" "https_forwarding_rule" {
+  name        = "alerting-platform-https-forwarding-rule"
+  target      = google_compute_target_https_proxy.https_proxy.id
+  port_range  = "443"
+  ip_protocol = "TCP"
+  ip_address  = data.google_compute_global_address.frontend_ip.address
 }
 
 ## Database
@@ -100,7 +122,7 @@ resource "google_project_service" "sql_admin_api" {
 }
 
 resource "google_firestore_index" "metric_logs_composite" {
-  database   = var.firestore_db
+  database   = google_firestore_database.firestore_db.name
   collection = "metric_logs"
 
   fields {
@@ -112,8 +134,6 @@ resource "google_firestore_index" "metric_logs_composite" {
     field_path = "timestamp"
     order      = "ASCENDING"
   }
-
-  depends_on = [google_firestore_database.firestore_db]
 }
 
 resource "google_redis_instance" "redis" {

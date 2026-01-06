@@ -1,0 +1,7 @@
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: backend-cert
+spec:
+  domains:
+    - api.alerting-platform.leszko.dev

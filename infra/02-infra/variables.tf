@@ -20,3 +20,7 @@ variable "firestore_db" {
   type    = string
   default = "logger-db"
 }
+
+variable "monitoring_mail" {
+  type    = string
+}

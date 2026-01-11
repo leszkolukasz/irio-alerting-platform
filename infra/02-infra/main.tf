@@ -154,6 +154,14 @@ resource "google_container_cluster" "gke" {
   remove_default_node_pool = true
 
   deletion_protection = false
+
+  monitoring_config {
+    enable_components = ["SYSTEM_COMPONENTS"]
+  }
+  
+  logging_config {
+    enable_components = ["SYSTEM_COMPONENTS", "WORKLOADS"]
+  }
 }
 
 resource "google_container_node_pool" "primary_nodes" {
@@ -176,4 +184,206 @@ resource "google_container_node_pool" "primary_nodes" {
       "https://www.googleapis.com/auth/cloud-platform"
     ]
   }
+}
+
+## MONITORING & ALERTING
+resource "google_monitoring_notification_channel" "email_channel" {
+  display_name = "Email Notification Channel"
+  type         = "email"
+  
+  labels = {
+    email_address = var.monitoring_mail
+  }
+}
+
+resource "google_monitoring_alert_policy" "container_restart_alert" {
+  display_name = "GKE Container Restarting"
+  combiner     = "OR"
+  
+  conditions {
+    display_name = "Container Restarting > 0"
+    
+    condition_threshold {
+      filter = "resource.type = \"k8s_container\" AND metric.type = \"kubernetes.io/container/restart_count\""
+      
+      duration   = "0s"
+      
+      comparison = "COMPARISON_GT"
+      
+      aggregations {
+        alignment_period   = "600s"
+        per_series_aligner = "ALIGN_DELTA"
+      }
+      
+      threshold_value = 2
+    }
+  }
+
+  notification_channels = [google_monitoring_notification_channel.email_channel.name]
+  
+  alert_strategy {
+    auto_close = "1800s"
+  }
+}
+
+resource "google_monitoring_alert_policy" "high_cpu_alert" {
+  display_name = "High Node CPU Usage"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "Node CPU > 80%"
+    
+    condition_threshold {
+      filter = "resource.type = \"k8s_node\" AND metric.type = \"kubernetes.io/node/cpu/allocatable_utilization\""
+      
+      duration   = "120s"
+      comparison = "COMPARISON_GT"
+      
+      aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_MEAN"
+      }
+      
+      threshold_value = 0.8
+    }
+  }
+
+  notification_channels = [google_monitoring_notification_channel.email_channel.name]
+
+    
+  alert_strategy {
+    auto_close = "1800s"
+  }
+}
+
+resource "google_logging_metric" "api_500_errors" {
+  name        = "api_500_errors_metric"
+  description = "500 Api Errors Count"
+
+  filter = <<-EOT
+    resource.type="k8s_container"
+    AND resource.labels.container_name="alerting-platform-api"
+    AND logName =~ "(stdout|stderr)"
+    AND textPayload =~ "[|] 500 [|]"
+  EOT
+
+  metric_descriptor {
+    metric_kind = "DELTA"
+    value_type  = "INT64"
+  }
+}
+
+resource "google_monitoring_alert_policy" "api_500_alert" {
+  display_name = "API Critical: HTTP 500 Errors"
+  combiner     = "OR"
+  enabled      = true
+
+  conditions {
+    display_name = "API 500 Errors > 1/min"
+    
+    condition_threshold {
+      filter = "resource.type = \"k8s_container\" AND metric.type = \"logging.googleapis.com/user/${google_logging_metric.api_500_errors.name}\""
+      
+      duration   = "0s"
+      comparison = "COMPARISON_GT"
+      
+      aggregations {
+        alignment_period   = "300s"
+        per_series_aligner = "ALIGN_SUM"
+        
+        cross_series_reducer = "REDUCE_SUM"
+        
+        group_by_fields = [
+          "resource.label.cluster_name",
+          "resource.label.namespace_name",
+          "resource.label.container_name"
+        ]
+      }
+
+      threshold_value = 5
+    }
+  }
+
+  notification_channels = [google_monitoring_notification_channel.email_channel.name]
+  
+  alert_strategy {
+    auto_close = "1800s"
+  }
+}
+
+resource "google_monitoring_dashboard" "alerting_platform_dashboard" {
+  dashboard_json = <<EOF
+{
+  "displayName": "Alerting Platform - Health & Status",
+  "gridLayout": {
+    "columns": "2",
+    "widgets": [
+      {
+        "title": "API 500 Errors (Log Metric)",
+        "xyChart": {
+          "dataSets": [{
+            "timeSeriesQuery": {
+              "timeSeriesFilter": {
+                "filter": "resource.type=\"k8s_container\" metric.type=\"logging.googleapis.com/user/${google_logging_metric.api_500_errors.name}\"",
+                "aggregation": {
+                  "perSeriesAligner": "ALIGN_SUM",
+                  "alignmentPeriod": "60s"
+                }
+              }
+            },
+            "plotType": "STACKED_BAR",
+            "minAlignmentPeriod": "60s"
+          }],
+          "yAxis": {
+            "label": "Count",
+            "scale": "LINEAR"
+          }
+        }
+      },
+      {
+        "title": "Container Restarts (Namespace: default)",
+        "xyChart": {
+          "dataSets": [{
+            "timeSeriesQuery": {
+              "timeSeriesFilter": {
+                "filter": "resource.type=\"k8s_container\" metric.type=\"kubernetes.io/container/restart_count\" resource.label.namespace_name=\"default\"",
+                "aggregation": {
+                  "perSeriesAligner": "ALIGN_DELTA",
+                  "alignmentPeriod": "300s"
+                }
+              }
+            },
+            "plotType": "LINE"
+          }],
+          "yAxis": {
+            "label": "Restarts/s",
+            "scale": "LINEAR"
+          }
+        }
+      },
+      {
+        "title": "Node CPU Utilization",
+        "xyChart": {
+          "dataSets": [{
+            "timeSeriesQuery": {
+              "timeSeriesFilter": {
+                "filter": "resource.type=\"k8s_node\" metric.type=\"kubernetes.io/node/cpu/allocatable_utilization\"",
+                "aggregation": {
+                  "perSeriesAligner": "ALIGN_MEAN",
+                  "alignmentPeriod": "300s"
+                }
+              }
+            },
+            "plotType": "LINE"
+          }],
+          "yAxis": {
+            "label": "Utilization (0-1)",
+            "scale": "LINEAR"
+          }
+        }
+      }
+    ]
+  }
+}
+EOF
 }

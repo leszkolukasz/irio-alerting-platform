@@ -102,6 +102,9 @@ resource "google_sql_user" "db_user" {
 resource "google_sql_database" "api_db" {
   name     = "alerting_platform_api"
   instance = google_sql_database_instance.db_instance.name
+
+  # Ir is not destroyed withouth this dependency
+  depends_on = [google_project_service.sql_admin_api]
 }
 
 ### Firestore

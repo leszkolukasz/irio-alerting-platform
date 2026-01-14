@@ -61,7 +61,10 @@ func main() {
 	log.Printf("Worker listening on subscription %s ...", subName)
 
 	wg := sync.WaitGroup{}
-	live.StartLiveServer(&wg)
+
+	if config.GetConfig().Env == config.PROD {
+		live.StartLiveServer(&wg)
+	}
 
 	err := sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
 		var task pubsub_common.MonitoringTask

@@ -30,7 +30,10 @@ func main() {
 
 	var wg sync.WaitGroup
 
-	live.StartLiveServer(&wg)
+	if config.GetConfig().Env == config.PROD {
+		live.StartLiveServer(&wg)
+	}
+
 	StartPubSubListener(ctx, &wg, psClient, managerState)
 	StartIncidentManager(ctx, managerState)
 

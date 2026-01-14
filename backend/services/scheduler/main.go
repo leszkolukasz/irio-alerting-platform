@@ -184,7 +184,10 @@ func main() {
 
 	var wg sync.WaitGroup
 
-	live.StartLiveServer(&wg)
+	if cfg.Env == config.PROD {
+		live.StartLiveServer(&wg)
+	}
+
 	pubsub_common.CreateSubscriptionsAndTopics(pubsubClient, subscriptions, []string{pubsub_common.ExecuteHealthCheckTopic})
 	pubsub_common.SetupSubscriptionListeners(ctx, pubsubClient, subscriptions, &wg, sched.HandleMessage)
 

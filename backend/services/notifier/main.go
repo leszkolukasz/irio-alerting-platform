@@ -34,7 +34,10 @@ func main() {
 
 	var wg sync.WaitGroup
 
-	live.StartLiveServer(&wg)
+	if config.GetConfig().Env == config.PROD {
+		live.StartLiveServer(&wg)
+	}
+
 	pubsub_common.SetupSubscriptionListeners(ctx, psClient, subscriptions, &wg,
 		func(ctx context.Context, msg pubsub_common.PubSubMessage, eventType string) {
 			HandleMessage(ctx, msg, eventType, mailer)

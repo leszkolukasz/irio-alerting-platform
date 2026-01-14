@@ -34,8 +34,8 @@ spec:
 
             - name: API_HOST
               value: {{ .Values.gcloud.publicAPIURL | quote }}
-            - name: REST_API_PORT
-              value: "80"
+            # - name: REST_API_PORT
+            #   value: "80"
           livenessProbe:
             httpGet:
               path: /live

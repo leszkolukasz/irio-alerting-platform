@@ -26,7 +26,7 @@ func (controller *Controller) ResolveIncident(c *gin.Context) {
 	}
 	log.Printf("[DEBUG] Resolving incident %s for service %d by on-caller %s", claims.IncidentID, claims.ServiceID, claims.OnCaller)
 
-	err = controller.PubSubService.SendOncallerAcknowledgedMessage(c, claims.IncidentID, claims.OnCaller)
+	err = controller.PubSubService.SendOncallerAcknowledgedMessage(c, claims.IncidentID, claims.ServiceID, claims.OnCaller)
 	if err != nil {
 		c.JSON(500, gin.H{"message": "Failed to send on-caller acknowledged message", "error": err.Error()})
 		return

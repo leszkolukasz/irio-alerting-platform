@@ -1,6 +1,7 @@
 package magic_link
 
 import (
+	"alerting-platform/common/config"
 	"fmt"
 )
 
@@ -12,7 +13,12 @@ func GenerateResolveLink(incidentID string, serviceID uint64, email string, secr
 		return "", fmt.Errorf("failed to generate token for link: %w", err)
 	}
 
-	link := fmt.Sprintf("%s:%d%s/%s", apiHost, apiPort, ResolveEndpointPath, token)
+	var link string
+	if config.GetConfig().Env != config.PROD {
+		link = fmt.Sprintf("%s:%d%s/%s", apiHost, apiPort, ResolveEndpointPath, token)
+	} else {
+		link = fmt.Sprintf("%s%s/%s", apiHost, ResolveEndpointPath, token)
+	}
 
 	return link, nil
 }

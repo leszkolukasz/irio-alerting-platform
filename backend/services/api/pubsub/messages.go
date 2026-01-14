@@ -14,7 +14,7 @@ type PubSubServiceI interface {
 	SendServiceCreatedMessage(ctx context.Context, service db.MonitoredService) error
 	SendServiceUpdatedMessage(ctx context.Context, service db.MonitoredService) error
 	SendServiceDeletedMessage(ctx context.Context, serviceID uint64) error
-	SendOncallerAcknowledgedMessage(ctx context.Context, incidentID string, onCaller string) error
+	SendOncallerAcknowledgedMessage(ctx context.Context, incidentID string, serviceID uint64, onCaller string) error
 }
 
 type PubSubService struct {
@@ -79,10 +79,11 @@ func (s *PubSubService) SendServiceDeletedMessage(ctx context.Context, serviceID
 	return pubsub_common.SendPayload(ctx, s.client, pubsub_common.ServiceRemovedTopic, payload, fmt.Sprintf("%d", serviceID))
 }
 
-func (s *PubSubService) SendOncallerAcknowledgedMessage(ctx context.Context, incidentID string, onCaller string) error {
+func (s *PubSubService) SendOncallerAcknowledgedMessage(ctx context.Context, incidentID string, serviceID uint64, onCaller string) error {
 	payload := pubsub_common.PubSubPayload{
 		IncidentID: incidentID,
 		OnCaller:   onCaller,
+		ServiceID:  serviceID,
 		Timestamp:  time.Now().UTC().Format(time.RFC3339),
 	}
 

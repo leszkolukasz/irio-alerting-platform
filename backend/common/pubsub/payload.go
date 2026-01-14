@@ -19,6 +19,7 @@ type PubSubPayloadData struct {
 	HealthCheckInterval int      `json:"health_check_interval,omitempty"`
 	AlertWindow         int      `json:"alert_window,omitempty"`
 	Oncallers           []string `json:"oncallers,omitempty"`
+	URL                 string   `json:"url,omitempty"`
 }
 
 type PubSubPayload struct {

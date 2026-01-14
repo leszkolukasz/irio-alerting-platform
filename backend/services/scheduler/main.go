@@ -46,6 +46,50 @@ func (s *scheduler) addTask(id uint64, t *Task) {
 	s.activeTasks[id] = t
 }
 
+func (s *scheduler) removeTask(id uint64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if task, exists := s.activeTasks[id]; exists {
+		task.Cancel()
+		delete(s.activeTasks, id)
+	}
+}
+
+func (s *scheduler) updateTask(ctx context.Context, service *rpc.ServiceInfoForScheduler) {
+	s.removeTask(service.ServiceId)
+	s.scheduleMonitor(ctx, service)
+}
+
+func (s *scheduler) HandleMessage(ctx context.Context, msg pubsub_common.PubSubMessage, eventType string) {
+	payload, _, err := pubsub_common.ExtractPayload(msg)
+
+	if err != nil {
+		log.Printf("[ERROR] Error extracting payload for topic %s: %v\n", eventType, err)
+		log.Printf("Dropping message...")
+		msg.Ack()
+		return
+	}
+
+	switch eventType {
+	case pubsub_common.ServiceCreatedTopic, pubsub_common.ServiceModifiedTopic:
+		serviceInfo := &rpc.ServiceInfoForScheduler{
+			ServiceId:           payload.ServiceID,
+			Url:                 payload.Data.URL,
+			HealthCheckInterval: int64(payload.Data.HealthCheckInterval),
+		}
+
+		log.Printf("[INFO] Updating/Adding task for service %d (url: %s)", payload.ServiceID, payload.Data.URL)
+		s.updateTask(ctx, serviceInfo)
+	case pubsub_common.ServiceRemovedTopic:
+		log.Printf("[INFO] Removing task for service %d", payload.ServiceID)
+		s.removeTask(payload.ServiceID)
+	default:
+		log.Printf("[WARNING] Unknown event type: %s", eventType)
+	}
+
+	msg.Ack()
+}
+
 func (s *scheduler) scheduleMonitor(ctx context.Context, service *rpc.ServiceInfoForScheduler) {
 	goRoutineCtx, cancel := context.WithCancel(ctx)
 	serviceId := service.ServiceId
@@ -64,9 +108,9 @@ func (s *scheduler) scheduleMonitor(ctx context.Context, service *rpc.ServiceInf
 		for {
 			select {
 			case <-goRoutineCtx.Done():
+				log.Printf("[INFO] Stopping monitor for service %d", service.ServiceId)
 				return
 			case <-ticker.C:
-				// here the message is sent to the broker
 				monitoringTask := MonitoringTask{
 					ServiceId: serviceId,
 					URL:       url,
@@ -97,14 +141,18 @@ func main() {
 	addr := fmt.Sprintf("%s:%d", cfg.APIHost, cfg.RPCPort)
 	fmt.Printf("Connection to API at %s\n", addr)
 
-	// pubsub connection
+	subscriptions := map[string]string{
+		"scheduler-service-created":  pubsub_common.ServiceCreatedTopic,
+		"scheduler-service-modified": pubsub_common.ServiceModifiedTopic,
+		"scheduler-service-removed":  pubsub_common.ServiceRemovedTopic,
+	}
+
 	pubsubClient, err := pubsub.NewClient(context.Background(), cfg.ProjectID)
 
 	if err != nil {
 		log.Fatalf("Failed to connect ot pubsub: %v", err)
 	}
 
-	// grpc connection
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 
 	if err != nil {
@@ -134,14 +182,16 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	var wg sync.WaitGroup
+
+	live.StartLiveServer(&wg)
+	pubsub_common.CreateSubscriptionsAndTopics(pubsubClient, subscriptions, []string{pubsub_common.ExecuteHealthCheckTopic})
+	pubsub_common.SetupSubscriptionListeners(ctx, pubsubClient, subscriptions, &wg, sched.HandleMessage)
+
 	for _, service := range resp.Services {
 		sched.scheduleMonitor(ctx, service)
 	}
 
-	wg := sync.WaitGroup{}
-	live.StartLiveServer(&wg)
-
-	// its waiting for a ctrl+c signal
-	<-ctx.Done()
-	wg.Done()
+	log.Println("Scheduler service is running...")
+	wg.Wait()
 }

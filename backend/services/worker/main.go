@@ -46,7 +46,11 @@ func main() {
 		subName: pubsub_common.ExecuteHealthCheckTopic,
 	}
 
-	pubsub_common.CreateSubscriptionsAndTopics(pubsubClient, subscriptions, nil)
+	outputTopics := []string{
+		pubsub_common.ServiceUpTopic,
+		pubsub_common.ServiceDownTopic,
+	}
+	pubsub_common.CreateSubscriptionsAndTopics(pubsubClient, subscriptions, outputTopics)
 
 	sub := pubsubClient.Subscription(subName)
 

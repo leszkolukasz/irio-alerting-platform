@@ -40,6 +40,7 @@ func (s *PubSubService) SendServiceCreatedMessage(ctx context.Context, service d
 			AlertWindow:         service.AlertWindow,
 			HealthCheckInterval: service.HealthCheckInterval,
 			Oncallers:           oncallers,
+			URL:                 service.URL,
 		},
 	}
 
@@ -62,6 +63,7 @@ func (s *PubSubService) SendServiceUpdatedMessage(ctx context.Context, service d
 			AlertWindow:         service.AlertWindow,
 			HealthCheckInterval: service.HealthCheckInterval,
 			Oncallers:           oncallers,
+			URL:                 service.URL,
 		},
 	}
 

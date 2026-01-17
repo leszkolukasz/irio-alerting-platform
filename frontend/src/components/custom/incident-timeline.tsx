@@ -64,8 +64,8 @@ const incidentEventCompare = (a: IncidentEvent, b: IncidentEvent): number => {
 
   const typeOrder: Record<IncidentEvent["type"], number> = {
     START: 0,
-    NOTIFIED: 1,
-    TIMEOUT: 2,
+    TIMEOUT: 1,
+    NOTIFIED: 2,
     UNRESOLVED: 3,
     RESOLVED: 3,
   };

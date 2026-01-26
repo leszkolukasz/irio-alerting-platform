@@ -29,12 +29,9 @@ func TestResolveIncident(t *testing.T) {
 	email := "oncaller@example.com"
 
 	t.Run("Success 200", func(t *testing.T) {
-		mockPubSub.ExpectedCalls = nil
-		mockPubSub.Calls = nil
-
 		validToken, _ := magic_link.GenerateToken(incidentID, serviceID, email, []byte(testSecret))
 
-		mockPubSub.On("SendOncallerAcknowledgedMessage", mock.Anything, incidentID, email).Return(nil).Once()
+		mockPubSub.On("SendOncallerAcknowledgedMessage", mock.Anything, incidentID, serviceID, email).Return(nil).Once()
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
@@ -51,8 +48,6 @@ func TestResolveIncident(t *testing.T) {
 	})
 
 	t.Run("Missing Token 400", func(t *testing.T) {
-		mockPubSub.ExpectedCalls = nil
-
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 
@@ -68,8 +63,6 @@ func TestResolveIncident(t *testing.T) {
 	})
 
 	t.Run("Invalid Token 401", func(t *testing.T) {
-		mockPubSub.ExpectedCalls = nil
-
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 
@@ -86,8 +79,6 @@ func TestResolveIncident(t *testing.T) {
 	})
 
 	t.Run("Wrong Secret 401", func(t *testing.T) {
-		mockPubSub.ExpectedCalls = nil
-
 		wrongSecret := []byte("wrong-secret")
 		forgedToken, _ := magic_link.GenerateToken(incidentID, serviceID, email, wrongSecret)
 
@@ -105,11 +96,9 @@ func TestResolveIncident(t *testing.T) {
 	})
 
 	t.Run("PubSub Error 500", func(t *testing.T) {
-		mockPubSub.ExpectedCalls = nil // Reset
-
 		validToken, _ := magic_link.GenerateToken(incidentID, serviceID, email, []byte(testSecret))
 
-		mockPubSub.On("SendOncallerAcknowledgedMessage", mock.Anything, incidentID, email).Return(errors.New("pubsub connection failed")).Once()
+		mockPubSub.On("SendOncallerAcknowledgedMessage", mock.Anything, incidentID, serviceID, email).Return(errors.New("pubsub connection failed")).Once()
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)

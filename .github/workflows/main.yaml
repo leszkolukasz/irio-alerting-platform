@@ -2,7 +2,8 @@ name: Production Pipeline
 
 on:
   # push:
-  #   branches: [main]
+  #   branches:
+  #     - main
   workflow_dispatch:
 
 env:
@@ -102,9 +103,64 @@ jobs:
         working-directory: ${{ env.BACKEND_DIR }}
         run: make test-service SERVICE=${{ matrix.service }}
 
+  e2e-integration-test:
+    name: "E2E Integration Test (Docker Compose)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Create .env file for E2E
+        run: |
+          cat <<EOF > .env
+          ENV=dev
+          SECRET=secret_for_ci_tests
+          PROJECT_ID=test-project
+          TF_VAR_project_id=test-project
+
+          API_HOST=localhost
+          REST_API_PORT=8080
+          RPC_PORT=9090
+
+          POSTGRES_HOST=localhost
+          POSTGRES_PORT=5432
+          POSTGRES_USER=admin
+          POSTGRES_PASSWORD=password
+          POSTGRES_DB=alerting_platform_api
+          TF_VAR_db_user=admin
+          TF_VAR_db_password=password
+
+          REDIS_HOST=localhost
+          REDIS_PORT=6379
+          REDIS_DB=0
+          REDIS_PASSWORD=password
+          REDIS_PREFIX=api
+
+          PUBSUB_EMULATOR_HOST=localhost:8085
+          PUBSUB_EMULATOR_PORT=8085
+
+          FIRESTORE_EMULATOR_HOST=localhost:8086
+          FIRESTORE_EMULATOR_PORT=8086
+          FIRESTORE_DB=logger-db
+          TF_VAR_firestore_db=logger-db
+
+          SMTP_HOST=localhost
+          SMTP_PORT=2525
+          SMTP_USER=user
+          SMTP_PASS=pass
+          EMAIL_FROM=ci-test@example.com
+          EOF
+
+      - name: Run E2E Test
+        run: make test-e2e
+
   backend-build-push:
     name: "Backend Build & Push ${{ matrix.service }}"
-    needs: [bootstrap, backend-lint-test]
+    needs: [bootstrap, backend-lint-test, e2e-integration-test]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

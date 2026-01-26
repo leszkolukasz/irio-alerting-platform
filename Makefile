@@ -16,3 +16,9 @@ $(RECURSIVE_COMMANDS):
 		$(MAKE) --no-print-directory -C $$dir $@ || exit 1; \
 		printf "\n"; \
 	done
+
+.PHONY: test-e2e
+test-e2e:
+	@echo "Starting E2E integration tests..."
+	@chmod +x run_integration_test.sh
+	@./run_integration_test.sh
